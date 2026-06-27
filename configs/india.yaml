@@ -1,0 +1,19 @@
+# India-level configuration (SRS §13.18, §13.23).
+# Phase 0 stub — values populated in later phases. No business logic reads
+# these yet; the loader (app/config/loader.py) only proves they parse.
+
+country: India
+crs: EPSG:4326          # WGS84 (SRS §13.18)
+
+# India spatial envelope (SRS §11.4) — approximate bounding box, refined later.
+spatial_envelope:
+  min_lat: 6.5
+  max_lat: 37.1
+  min_lng: 68.1
+  max_lng: 97.4
+
+# Coordinate validation bounds (SRS §13.18).
+validation:
+  lat_range: [-90, 90]
+  lng_range: [-180, 180]
+  restrict_to_country: true

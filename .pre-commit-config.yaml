@@ -1,0 +1,50 @@
+# Pre-commit hooks (SRS §35). Backend hooks use uv; frontend hooks use npm,
+# so tool versions stay defined in backend/pyproject.toml and frontend/package.json.
+#   pip install pre-commit && pre-commit install
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-added-large-files
+      - id: check-merge-conflict
+
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff (backend)
+        entry: bash -c 'cd backend && uv run ruff check --fix .'
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: black
+        name: black (backend)
+        entry: bash -c 'cd backend && uv run black .'
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: mypy
+        name: mypy (backend)
+        entry: bash -c 'cd backend && uv run mypy app'
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: eslint
+        name: eslint (frontend)
+        entry: bash -c 'cd frontend && npm run lint'
+        language: system
+        files: ^frontend/.*\.(ts|tsx|js|jsx)$
+        pass_filenames: false
+
+      - id: prettier
+        name: prettier (frontend)
+        entry: bash -c 'cd frontend && npx --no-install prettier --write .'
+        language: system
+        files: ^frontend/.*\.(ts|tsx|js|jsx|css|json|md)$
+        pass_filenames: false

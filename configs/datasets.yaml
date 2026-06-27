@@ -1,0 +1,17 @@
+# Dataset registry configuration (SRS §13.15, §16, §18, §19.4).
+# Phase 0 stub — the deterministic Citation Engine (SRS §16) and connectors
+# (SRS §18) read dataset metadata (name, provider, version, source_url, TTL)
+# from here in later phases. Empty is valid for Phase 0.
+
+datasets: {}
+
+# Example shape (commented; added in Phase 2+):
+# datasets:
+#   isro_cartodem:
+#     name: ISRO CartoDEM
+#     provider: ISRO / Bhuvan
+#     version: v3
+#     source_url: https://bhuvan.nrsc.gov.in/
+#     crs: EPSG:4326
+#     ttl: 30d
+#     layers: [terrain]

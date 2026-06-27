@@ -1,0 +1,48 @@
+# Minimal CI (SRS §31). Phase 0 runs lint + type-check + backend tests on the
+# scaffold. The full pipeline (security scan, image build, deploy) is Phase 8.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      - name: Set up Python
+        run: uv python install 3.12
+      - name: Install dependencies
+        run: uv sync
+      - name: Ruff
+        run: uv run ruff check .
+      - name: Black (check)
+        run: uv run black --check .
+      - name: mypy
+        run: uv run mypy app
+      - name: Pytest
+        run: uv run pytest
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Lint
+        run: npm run lint
+      - name: Type-check
+        run: npm run typecheck

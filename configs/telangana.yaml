@@ -1,0 +1,19 @@
+# Telangana pilot-region configuration (SRS §11.8 State Registry, §21, §24).
+# Phase 0 stub — boundaries, datasets, and region-gated fields are added in
+# Phase 1/2. State-specific logic must come from config, never code (SRS §11.8).
+
+state:
+  code: TG
+  name: Telangana
+  registered: true        # the initial registered region (SRS §24)
+  lifecycle: stable
+
+# Region-gated layers (SRS §24.3) — enumerated in later phases.
+region_gated_fields: []
+
+# Spatial seed inputs (SRS §24.4) — paths populated in Phase 2.
+seed:
+  boundary: null
+  districts: null
+  mandals: null
+  villages: null

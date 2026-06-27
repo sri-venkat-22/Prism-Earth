@@ -1,0 +1,104 @@
+# Prism Earth — local development orchestration (SRS §32).
+# `docker compose up` boots: db (PostGIS), redis, backend (FastAPI), frontend (Next.js).
+# All values have dev defaults so it runs with no .env file; copy .env.example to
+# override. Nginx and monitoring containers (SRS §32.1) are added in Phase 8.
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: prism-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-prism}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-prism}
+      POSTGRES_DB: ${POSTGRES_DB:-prism_earth}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-prism} -d ${POSTGRES_DB:-prism_earth}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: prism-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: prism-backend
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    environment:
+      PRISM_APP_ENV: development
+      PRISM_DEBUG: "true"
+      PRISM_LOG_JSON: "false"
+      PRISM_POSTGRES_HOST: db
+      PRISM_POSTGRES_PORT: "5432"
+      PRISM_POSTGRES_USER: ${POSTGRES_USER:-prism}
+      PRISM_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-prism}
+      PRISM_POSTGRES_DB: ${POSTGRES_DB:-prism_earth}
+      PRISM_REDIS_URL: redis://redis:6379/0
+      PRISM_CONFIG_DIR: /configs
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/migrations:/app/migrations
+      - ./configs:/configs:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/v1/health').status==200 else 1)\""
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: prism-frontend
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
+      NEXT_PUBLIC_API_DOCS_URL: http://localhost:8000/docs
+      NEXT_PUBLIC_API_HEALTH_URL: http://localhost:8000/api/v1/health
+      NEXT_TELEMETRY_DISABLED: "1"
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  pgdata:
+  redisdata:

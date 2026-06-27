@@ -1,0 +1,46 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Node / Next.js ---
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# --- Build / cache ---
+dist/
+build/
+*.log
+
+# --- Env / secrets ---
+.env.*
+!.env.example
+*.pem
+*.key
+service-account*.json
+gee-key*.json
+
+# --- OS / editors ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# --- Data (large datasets are not committed; see datasets/README) ---
+datasets/raster/*
+datasets/vector/*
+!datasets/**/.gitkeep
