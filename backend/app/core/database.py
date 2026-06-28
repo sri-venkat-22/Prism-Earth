@@ -38,9 +38,7 @@ def init_engine(settings: Settings | None = None) -> AsyncEngine:
             pool_pre_ping=True,
             future=True,
         )
-        _sessionmaker = async_sessionmaker(
-            bind=_engine, expire_on_commit=False, autoflush=False
-        )
+        _sessionmaker = async_sessionmaker(bind=_engine, expire_on_commit=False, autoflush=False)
         logger.info("database.engine.initialized", host=settings.postgres_host)
     return _engine
 

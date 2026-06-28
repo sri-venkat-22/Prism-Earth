@@ -24,9 +24,7 @@ def _new_correlation_id() -> str:
 
 
 class CorrelationIdMiddleware(BaseHTTPMiddleware):
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         correlation_id = (
             request.headers.get(REQUEST_ID_HEADER)
             or request.headers.get(CORRELATION_HEADER)
