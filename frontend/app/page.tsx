@@ -2,8 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const API_DOCS_URL =
-  process.env.NEXT_PUBLIC_API_DOCS_URL ?? "http://localhost:8000/docs";
+const API_DOCS_URL = process.env.NEXT_PUBLIC_API_DOCS_URL ?? "http://localhost:8000/docs";
 const API_HEALTH_URL =
   process.env.NEXT_PUBLIC_API_HEALTH_URL ?? "http://localhost:8000/api/v1/health";
 

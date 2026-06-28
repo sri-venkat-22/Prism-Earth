@@ -13,11 +13,11 @@ WORKDIR /app
 RUN pip install --no-cache-dir uv
 
 # ---- Dependency layer (cached unless manifests change) ----
-# The base image already provides Python 3.12, so uv resolves and installs
-# directly. A uv.lock is created at build time; commit one locally (`uv lock`)
-# for fully pinned, reproducible builds.
-COPY pyproject.toml README.md ./
-RUN uv sync --no-dev --no-install-project
+# The base image already provides Python 3.12. `--frozen` installs exactly what
+# the committed uv.lock pins (fully reproducible); `--no-install-project` skips
+# the app itself (it is a runnable, not a package — see pyproject [tool.uv]).
+COPY pyproject.toml uv.lock README.md ./
+RUN uv sync --frozen --no-dev --no-install-project
 
 # ---- Application layer ----
 COPY app ./app
