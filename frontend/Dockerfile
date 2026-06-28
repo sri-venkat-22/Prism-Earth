@@ -6,8 +6,9 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Install dependencies first (cached unless package manifests change).
-COPY package.json package-lock.json* ./
-RUN npm install
+# `npm ci` installs exactly what the committed package-lock.json pins.
+COPY package.json package-lock.json ./
+RUN npm ci
 
 # Copy the rest of the application.
 COPY . .

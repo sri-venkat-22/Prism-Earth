@@ -128,9 +128,7 @@ async def validation_exception_handler(
     )
 
 
-async def http_exception_handler(
-    request: Request, exc: StarletteHTTPException
-) -> JSONResponse:
+async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
     return _render(
         status_code=exc.status_code,
         code=f"HTTP_{exc.status_code}",
@@ -158,8 +156,14 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 
 
 def register_exception_handlers(app: FastAPI) -> None:
-    """Register all exception handlers on the FastAPI app."""
-    app.add_exception_handler(AppError, app_error_handler)
-    app.add_exception_handler(RequestValidationError, validation_exception_handler)
-    app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+    """Register all exception handlers on the FastAPI app.
+
+    Starlette types ``add_exception_handler`` to accept handlers whose second
+    argument is ``Exception``; our handlers narrow it to the specific exception
+    they render. That is safe at runtime (Starlette dispatches by type) but
+    mypy flags the contravariance, so the narrowed registrations are ignored.
+    """
+    app.add_exception_handler(AppError, app_error_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(StarletteHTTPException, http_exception_handler)  # type: ignore[arg-type]
     app.add_exception_handler(Exception, unhandled_exception_handler)
