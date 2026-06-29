@@ -1,0 +1,12 @@
+# State Registry manifest (SRS §11.8 State Registry, §21).
+#
+# This is the authoritative list of registered regions. The backend hardcodes
+# NO region logic (SRS §11.8): each entry names a region config file under
+# configs/<name>.yaml that the State Registry loads at startup. Onboarding a new
+# state requires only adding its config file and listing it here — no code
+# changes (SRS §21.3).
+#
+# Version 1 registers Telangana only (SRS §24).
+
+registered_states:
+  - telangana

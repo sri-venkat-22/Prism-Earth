@@ -51,6 +51,11 @@ def load_datasets_config() -> dict[str, Any]:
     return _read_yaml(_config_dir() / "datasets.yaml")
 
 
+def load_states_manifest() -> dict[str, Any]:
+    """Load the State Registry manifest ``states.yaml`` (SRS §11.8)."""
+    return _read_yaml(_config_dir() / "states.yaml")
+
+
 @lru_cache(maxsize=1)
 def load_all_configs() -> dict[str, Any]:
     """Load and cache all known config files."""
@@ -58,6 +63,7 @@ def load_all_configs() -> dict[str, Any]:
         "india": load_region_config("india"),
         "telangana": load_region_config("telangana"),
         "datasets": load_datasets_config(),
+        "states": load_states_manifest(),
     }
     logger.info("config.loaded", files=sorted(configs.keys()))
     return configs

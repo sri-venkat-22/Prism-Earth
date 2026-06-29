@@ -1,6 +1,12 @@
 # Telangana pilot-region configuration (SRS §11.8 State Registry, §21, §24).
-# Phase 0 stub — boundaries, datasets, and region-gated fields are added in
-# Phase 1/2. State-specific logic must come from config, never code (SRS §11.8).
+#
+# The State Registry (app/metadata/state_registry.py) reads this file — region
+# behavior is configuration, never code (SRS §11.8). Onboarding a future state
+# means adding a sibling config of the same shape and listing it in states.yaml;
+# no application code changes (SRS §21.3).
+#
+# Field names below MUST exist in the Metadata Catalog (app/metadata/seed_fields);
+# the catalog validator cross-checks them (SRS §11.4, §11.9).
 
 state:
   code: TG
@@ -8,8 +14,45 @@ state:
   registered: true        # the initial registered region (SRS §24)
   lifecycle: stable
 
-# Region-gated layers (SRS §24.3) — enumerated in later phases.
-region_gated_fields: []
+# Approximate Telangana bounding box for coordinate resolution (SRS §24.1).
+# Phase 1 uses a bbox; the precise state boundary is seeded into PostGIS in
+# Phase 2 (SRS §24.4) and supersedes this.
+bbox:
+  min_lat: 15.8
+  max_lat: 19.95
+  min_lng: 77.2
+  max_lng: 81.4
+
+# Datasets integrated for the MVP (SRS §24.2).
+supported_datasets:
+  - ISRO CartoDEM
+  - Copernicus Sentinel-2
+  - TerraClimate
+  - CWC Flood Data
+  - NRSC Waterbody Database
+  - NASA FIRMS
+  - Survey of India Administrative Boundaries
+
+# Region-gated fields enabled only inside Telangana (SRS §24.3). Outside the
+# boundary these return null with the catalog's configured null_meaning. Each
+# name must be a REGION_GATED field in the catalog.
+region_gated_fields:
+  # Administrative
+  - municipality_name
+  - ward_name
+  - urban_local_body
+  # Cadastral
+  - parcel_id
+  - survey_number
+  - parcel_area
+  - parcel_geometry
+  - zoning
+  - ownership_category
+  # Land cover
+  - dominant_crop_class
+  # Utilities
+  - electricity_distribution_company
+  - industrial_tariff
 
 # Spatial seed inputs (SRS §24.4) — paths populated in Phase 2.
 seed:
