@@ -20,6 +20,7 @@ from app.core.database import dispose_engine, init_engine
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
 from app.core.redis import close_redis, init_redis
+from app.metadata import get_catalog, get_state_registry, validate_catalog
 from app.middleware.correlation import CorrelationIdMiddleware
 
 logger = get_logger(__name__)
@@ -36,6 +37,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     except ConfigError as exc:
         # Stub configs are expected in Phase 0; log but don't crash startup.
         logger.warning("config.load_failed", error=str(exc))
+
+    # Build and validate the Metadata Catalog + State Registry (SRS §11.4–11.9).
+    # The catalog is the single source of truth; a misbuilt catalog must not
+    # serve traffic, so validation failures fail startup fast.
+    catalog = get_catalog()
+    registry = get_state_registry()
+    report = validate_catalog(catalog, registry)
+    for warning in report.warnings:
+        logger.warning("catalog.validation.warning", detail=warning)
+    report.raise_for_status()
+    logger.info(
+        "catalog.validated",
+        fields=report.stats.fields,
+        layers=report.stats.layers,
+        presets=report.stats.presets,
+        states=registry.slugs(),
+    )
     logger.info("app.startup.complete", env=settings.app_env, version=settings.app_version)
     try:
         yield
