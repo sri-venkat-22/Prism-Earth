@@ -1,0 +1,39 @@
+{
+  "type": "FeatureCollection",
+  "name": "telangana_districts",
+  "note": "SRS §24.4 — simplified district boundaries. `state` links to admin.state by name.",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Hyderabad", "code": "HYD", "state": "Telangana" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [78.30, 17.25],
+            [78.65, 17.25],
+            [78.65, 17.55],
+            [78.30, 17.55],
+            [78.30, 17.25]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Rangareddy", "code": "RR", "state": "Telangana" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [78.65, 17.10],
+            [79.10, 17.10],
+            [79.10, 17.60],
+            [78.65, 17.60],
+            [78.65, 17.10]
+          ]
+        ]
+      }
+    }
+  ]
+}

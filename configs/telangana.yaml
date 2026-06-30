@@ -54,9 +54,26 @@ region_gated_fields:
   - electricity_distribution_company
   - industrial_tariff
 
-# Spatial seed inputs (SRS §24.4) — paths populated in Phase 2.
+# Spatial seed inputs (SRS §24.4). Files live under datasets/telangana/ and are
+# loaded by scripts/seed_telangana.py into the admin/hazards/infrastructure/
+# cadastral schemas. Replace these simplified fixtures with the Survey of India
+# boundaries via the same ingestion path — no code changes (SRS §20.7, §21.3).
 seed:
-  boundary: null
-  districts: null
-  mandals: null
-  villages: null
+  admin:
+    state: state.geojson
+    districts: districts.geojson
+    mandals: mandals.geojson
+    villages: villages.geojson
+    municipalities: municipalities.geojson
+    wards: wards.geojson
+  hazards:
+    flood_zones: flood_zones.geojson
+    water_bodies: water_bodies.geojson
+    historical_floods: historical_floods.geojson
+  infrastructure:
+    roads: roads.geojson
+    railways: railways.geojson
+    transmission_lines: transmission_lines.geojson
+    substations: substations.geojson
+  cadastral:
+    parcels: parcels.geojson

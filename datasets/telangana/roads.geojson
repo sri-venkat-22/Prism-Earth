@@ -1,0 +1,31 @@
+{
+  "type": "FeatureCollection",
+  "name": "telangana_roads",
+  "note": "SRS §24.4 — simplified road centrelines (infrastructure layer).",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "NH-44", "road_class": "national_highway" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [78.40, 17.30],
+          [78.486, 17.385],
+          [78.55, 17.50]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Inner Ring Road", "road_class": "arterial" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [78.42, 17.40],
+          [78.50, 17.40],
+          [78.55, 17.38]
+        ]
+      }
+    }
+  ]
+}

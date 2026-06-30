@@ -1,17 +1,98 @@
-# Dataset registry configuration (SRS §13.15, §16, §18, §19.4).
-# Phase 0 stub — the deterministic Citation Engine (SRS §16) and connectors
-# (SRS §18) read dataset metadata (name, provider, version, source_url, TTL)
-# from here in later phases. Empty is valid for Phase 0.
+# Dataset registry configuration (SRS §13.15, §16, §18, §19.4, §24.2).
+# The deterministic Citation Engine (SRS §16) and connectors (SRS §18) read
+# dataset metadata (name, provider, version, source_url, TTL) from here. This is
+# the source seeded into the metadata.dataset table (SRS §22.3) by
+# scripts/seed_telangana.py. Earth Engine asset ids live in app/gee/datasets.py.
 
-datasets: {}
-
-# Example shape (commented; added in Phase 2+):
-# datasets:
-#   isro_cartodem:
-#     name: ISRO CartoDEM
-#     provider: ISRO / Bhuvan
-#     version: v3
-#     source_url: https://bhuvan.nrsc.gov.in/
-#     crs: EPSG:4326
-#     ttl: 30d
-#     layers: [terrain]
+datasets:
+  isro_cartodem:
+    name: ISRO CartoDEM
+    provider: ISRO / NRSC Bhuvan
+    version: v3 R1
+    purpose: Elevation, slope, aspect (terrain)
+    source_url: https://bhuvan.nrsc.gov.in/
+    crs: EPSG:4326
+    ttl: 365d
+    spatial_resolution: 30m
+    update_frequency: static
+    license: Bhuvan Open Data
+    layers: [terrain]
+  sentinel2:
+    name: Copernicus Sentinel-2
+    provider: ESA / Copernicus
+    version: L2A
+    purpose: Land cover, NDVI, vegetation
+    source_url: https://sentinel.esa.int/web/sentinel/missions/sentinel-2
+    crs: EPSG:4326
+    ttl: 7d
+    spatial_resolution: 10m
+    temporal_resolution: 5-day
+    update_frequency: 5-day
+    license: Copernicus Open Data
+    layers: [land_cover]
+  terraclimate:
+    name: TerraClimate
+    provider: University of Idaho
+    version: "2023"
+    purpose: Rainfall, temperature, aridity (climate)
+    source_url: https://www.climatologylab.org/terraclimate.html
+    crs: EPSG:4326
+    ttl: 30d
+    spatial_resolution: 4638m
+    temporal_resolution: monthly
+    update_frequency: monthly
+    license: CC0
+    layers: [climate]
+  cwc_flood:
+    name: CWC Flood Data
+    provider: Central Water Commission
+    purpose: Flood hazard zones, historical floods
+    source_url: https://cwc.gov.in/
+    crs: EPSG:4326
+    ttl: 1d
+    update_frequency: seasonal
+    license: Govt. of India
+    layers: [natural_hazard]
+  nrsc_waterbodies:
+    name: NRSC Waterbody Database
+    provider: NRSC / ISRO
+    purpose: Surface water bodies
+    source_url: https://bhuvan.nrsc.gov.in/
+    crs: EPSG:4326
+    ttl: 90d
+    spatial_resolution: 30m
+    license: Bhuvan Open Data
+    layers: [natural_hazard]
+  nasa_firms:
+    name: NASA FIRMS
+    provider: NASA
+    purpose: Active fire detection
+    source_url: https://firms.modaps.eosdis.nasa.gov/
+    crs: EPSG:4326
+    ttl: 1d
+    spatial_resolution: 375m
+    temporal_resolution: daily
+    update_frequency: daily
+    license: NASA Open Data
+    layers: [natural_hazard]
+  soi_admin:
+    name: Survey of India Administrative Boundaries
+    provider: Survey of India
+    purpose: State, district, mandal, village boundaries
+    source_url: https://surveyofindia.gov.in/
+    crs: EPSG:4326
+    ttl: 365d
+    update_frequency: annual
+    license: Govt. of India
+    layers: [administrative]
+  jrc_surface_water:
+    name: JRC Global Surface Water
+    provider: EC JRC / Google
+    version: "1.4"
+    purpose: Historical water presence
+    source_url: https://global-surface-water.appspot.com/
+    crs: EPSG:4326
+    ttl: 90d
+    spatial_resolution: 30m
+    license: EC Open Data
+    layers: [natural_hazard]

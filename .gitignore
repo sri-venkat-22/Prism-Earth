@@ -32,6 +32,8 @@ build/
 *.key
 service-account*.json
 gee-key*.json
+# Local credentials directory — service-account keys live here (never committed).
+/secrets/
 
 # --- OS / editors ---
 .DS_Store

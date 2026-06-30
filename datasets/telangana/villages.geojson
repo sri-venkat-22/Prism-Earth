@@ -1,0 +1,39 @@
+{
+  "type": "FeatureCollection",
+  "name": "telangana_villages",
+  "note": "SRS §24.4 — simplified village/locality boundaries. `mandal` links to admin.mandal by name.",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Khairatabad", "code": "KHB-V", "mandal": "Khairatabad" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [78.46, 17.37],
+            [78.50, 17.37],
+            [78.50, 17.40],
+            [78.46, 17.40],
+            [78.46, 17.37]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Banjara Hills", "code": "BJH-V", "mandal": "Khairatabad" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [78.42, 17.40],
+            [78.46, 17.40],
+            [78.46, 17.43],
+            [78.42, 17.43],
+            [78.42, 17.40]
+          ]
+        ]
+      }
+    }
+  ]
+}

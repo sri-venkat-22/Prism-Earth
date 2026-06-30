@@ -1,0 +1,23 @@
+{
+  "type": "FeatureCollection",
+  "name": "telangana_municipalities",
+  "note": "SRS §24.4 — simplified urban-local-body boundary. `district` links to admin.district by name.",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Greater Hyderabad Municipal Corporation", "district": "Hyderabad" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [78.35, 17.30],
+            [78.60, 17.30],
+            [78.60, 17.50],
+            [78.35, 17.50],
+            [78.35, 17.30]
+          ]
+        ]
+      }
+    }
+  ]
+}

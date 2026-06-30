@@ -1,0 +1,27 @@
+{
+  "type": "FeatureCollection",
+  "name": "telangana_state",
+  "note": "SRS §24.4 — simplified Telangana state boundary (WGS84/EPSG:4326). Representative outline for the Version-1 seed; replace with the Survey of India boundary via the same ingestion path.",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Telangana", "code": "TG" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [77.2, 17.0],
+            [77.4, 18.7],
+            [78.0, 19.9],
+            [79.6, 19.9],
+            [81.4, 18.9],
+            [81.0, 16.6],
+            [79.5, 15.8],
+            [78.0, 15.9],
+            [77.2, 17.0]
+          ]
+        ]
+      }
+    }
+  ]
+}

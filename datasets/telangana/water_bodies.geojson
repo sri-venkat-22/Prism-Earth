@@ -1,0 +1,23 @@
+{
+  "type": "FeatureCollection",
+  "name": "telangana_water_bodies",
+  "note": "SRS §24.4 — simplified water bodies (NRSC Waterbody Database).",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Hussain Sagar", "kind": "lake" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [78.46, 17.41],
+            [78.49, 17.41],
+            [78.49, 17.45],
+            [78.46, 17.45],
+            [78.46, 17.41]
+          ]
+        ]
+      }
+    }
+  ]
+}

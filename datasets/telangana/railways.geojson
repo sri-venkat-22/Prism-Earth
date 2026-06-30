@@ -1,0 +1,19 @@
+{
+  "type": "FeatureCollection",
+  "name": "telangana_railways",
+  "note": "SRS §24.4 — simplified railway centrelines (infrastructure layer).",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Secunderabad–Falaknuma Line" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [78.45, 17.30],
+          [78.49, 17.40],
+          [78.50, 17.50]
+        ]
+      }
+    }
+  ]
+}
