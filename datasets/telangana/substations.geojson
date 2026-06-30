@@ -1,0 +1,17 @@
+{
+  "type": "FeatureCollection",
+  "name": "telangana_substations",
+  "note": "SRS §24.4 — simplified electrical substations (infrastructure layer).",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Khairatabad Substation" },
+      "geometry": { "type": "Point", "coordinates": [78.49, 17.39] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Erragadda Substation" },
+      "geometry": { "type": "Point", "coordinates": [78.44, 17.45] }
+    }
+  ]
+}

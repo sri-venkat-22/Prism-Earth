@@ -61,9 +61,15 @@ class Settings(BaseSettings):
     # --- Config files (SRS §10, §11.8) ----------------------------------
     config_dir: Path = BASE_DIR / "configs"
 
-    # --- Google Earth Engine (SRS §19) — placeholders, unused in Phase 0 -
+    # --- Spatial data seed (SRS §24.4) ----------------------------------
+    seed_data_dir: Path = BASE_DIR / "datasets" / "telangana"
+
+    # --- Google Earth Engine (SRS §19.3) --------------------------------
+    # Service-account auth (§19.3). Credentials never reach the frontend or API
+    # consumers. When unset, GEE features are disabled rather than failing.
     earth_engine_service_account: str | None = None
     earth_engine_key_file: str | None = None
+    earth_engine_project: str | None = None
 
     @property
     def database_url(self) -> str:
@@ -76,6 +82,11 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"
+
+    @property
+    def earth_engine_configured(self) -> bool:
+        """True when a service account and key file are both set (SRS §19.3)."""
+        return bool(self.earth_engine_service_account and self.earth_engine_key_file)
 
 
 @lru_cache(maxsize=1)

@@ -7,15 +7,15 @@
 - ``GET /api/v1/live``    — pure process liveness; always ``200``.
 
 Each endpoint reports API, database, Redis, Google Earth Engine, and connector
-status (SRS §13.16). In Phase 0, GEE and connectors are not yet implemented and
-are reported as ``not_configured`` / ``not_applicable``.
+status (SRS §13.16). Earth Engine (Phase 2, SRS §19) reports whether the service
+account is configured; connectors remain ``not_applicable`` until Phase 3.
 """
 
 from __future__ import annotations
 
 from fastapi import APIRouter, Response, status
 
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.core.database import ping_database
 from app.core.redis import ping_redis
 from app.schemas.common import (
@@ -28,11 +28,20 @@ from app.utils.time import utcnow_iso
 
 router = APIRouter(tags=["health"])
 
-# Placeholder statuses for subsystems introduced in later phases.
-_GEE_PHASE0 = ComponentStatus(status="not_configured", detail="Implemented in Phase 2 (SRS §19)")
+# Placeholder for subsystems introduced in later phases.
 _CONNECTORS_PHASE0 = ComponentStatus(
     status="not_applicable", detail="No connectors registered until Phase 3 (SRS §18)"
 )
+
+
+def _earth_engine_status(settings: Settings) -> ComponentStatus:
+    """Report Earth Engine service-account configuration (SRS §19.3)."""
+    if settings.earth_engine_configured:
+        return ComponentStatus(status="ok", detail="Service account configured")
+    return ComponentStatus(
+        status="not_configured",
+        detail="Set PRISM_EARTH_ENGINE_SERVICE_ACCOUNT and PRISM_EARTH_ENGINE_KEY_FILE (SRS §19.3)",
+    )
 
 
 @router.get("/health", response_model=HealthResponse, summary="Service health")
@@ -52,7 +61,7 @@ async def health() -> HealthResponse:
             "api": ComponentStatus(status="ok"),
             "database": ComponentStatus(status="ok" if db_ok else "down"),
             "redis": ComponentStatus(status="ok" if redis_ok else "down"),
-            "earth_engine": _GEE_PHASE0,
+            "earth_engine": _earth_engine_status(settings),
             "connectors": _CONNECTORS_PHASE0,
         },
     )

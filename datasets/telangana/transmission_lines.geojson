@@ -1,0 +1,19 @@
+{
+  "type": "FeatureCollection",
+  "name": "telangana_transmission_lines",
+  "note": "SRS §24.4 — simplified power transmission lines (infrastructure layer).",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Khairatabad 220kV Feeder", "voltage_kv": 220 },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [78.40, 17.40],
+          [78.49, 17.39],
+          [78.55, 17.40]
+        ]
+      }
+    }
+  ]
+}

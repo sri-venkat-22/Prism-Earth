@@ -1,0 +1,26 @@
+{
+  "type": "FeatureCollection",
+  "name": "telangana_wards",
+  "note": "SRS §24.4 — simplified municipal ward. `municipality` links to admin.municipality by name.",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Khairatabad Ward",
+        "municipality": "Greater Hyderabad Municipal Corporation"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [78.45, 17.36],
+            [78.53, 17.36],
+            [78.53, 17.42],
+            [78.45, 17.42],
+            [78.45, 17.36]
+          ]
+        ]
+      }
+    }
+  ]
+}

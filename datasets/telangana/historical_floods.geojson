@@ -1,0 +1,23 @@
+{
+  "type": "FeatureCollection",
+  "name": "telangana_historical_floods",
+  "note": "SRS §24.4 — simplified historical flood extents (CWC Flood Data).",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "event_name": "Hyderabad 2020 Floods", "year": 2020 },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [78.42, 17.36],
+            [78.55, 17.36],
+            [78.55, 17.40],
+            [78.42, 17.40],
+            [78.42, 17.36]
+          ]
+        ]
+      }
+    }
+  ]
+}

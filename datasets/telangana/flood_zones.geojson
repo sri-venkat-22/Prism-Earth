@@ -1,0 +1,23 @@
+{
+  "type": "FeatureCollection",
+  "name": "telangana_flood_zones",
+  "note": "SRS §24.4 — simplified flood hazard zones (CWC). `hazard_class` is the severity band.",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Musi River Corridor", "hazard_class": "moderate" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [78.40, 17.36],
+            [78.60, 17.36],
+            [78.60, 17.39],
+            [78.40, 17.39],
+            [78.40, 17.36]
+          ]
+        ]
+      }
+    }
+  ]
+}

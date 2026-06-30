@@ -1,0 +1,29 @@
+{
+  "type": "FeatureCollection",
+  "name": "telangana_parcels",
+  "note": "SRS §24.3/§24.4 — sample cadastral survey parcels (pilot-region only).",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "parcel_id": "HYD-KHB-001",
+        "survey_number": "123/A",
+        "zoning": "residential",
+        "ownership_category": "private",
+        "area_sqm": 4500.0
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [78.4850, 17.3840],
+            [78.4870, 17.3840],
+            [78.4870, 17.3860],
+            [78.4850, 17.3860],
+            [78.4850, 17.3840]
+          ]
+        ]
+      }
+    }
+  ]
+}
