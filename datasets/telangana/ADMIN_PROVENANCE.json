@@ -1,0 +1,32 @@
+{
+  "rural_hierarchy": {
+    "dataset": "Survey of India Administrative Boundaries",
+    "source": "ramSeraph/indian_admin_boundaries (SoI/LGD-derived GeoParquet, EPSG:4326)",
+    "source_url": "https://github.com/ramSeraph/indian_admin_boundaries",
+    "selection": "Telangana \u2014 LGD state code 36 (current 33-district structure)"
+  },
+  "urban_local_bodies": {
+    "dataset": "Swachh Bharat Mission ULB boundaries (MoHUA)",
+    "source": "ramSeraph/indian_admin_boundaries \u2014 urban/SBM_ULBs",
+    "selection": "Telangana (stnm='Telangana'); district assigned by spatial containment"
+  },
+  "wards": {
+    "dataset": "GHMC ward boundaries (2022)",
+    "source": "Greater Hyderabad Municipal Corporation via OpenCity",
+    "source_url": "https://data.opencity.in/dataset/hyderabad-wards-info",
+    "selection": "All GHMC wards; parent ULB = Greater Hyderabad Municipal Corporation"
+  },
+  "villages": {
+    "dataset": "Survey of India village boundaries",
+    "source": "ramSeraph/indian_admin_boundaries \u2014 villages/SOI_villages",
+    "selection": "Telangana (STATE_C='TELANGANA'); mandal assigned by spatial containment"
+  },
+  "counts": {
+    "state": 1,
+    "districts": 33,
+    "mandals": 441,
+    "municipalities": 56,
+    "wards": 155,
+    "villages": 10822
+  }
+}

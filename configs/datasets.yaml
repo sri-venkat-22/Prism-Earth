@@ -96,3 +96,24 @@ datasets:
     spatial_resolution: 30m
     license: EC Open Data
     layers: [natural_hazard]
+  sbm_ulb:
+    name: Urban Local Body Boundaries (SBM-MoHUA / GHMC)
+    provider: Ministry of Housing & Urban Affairs (Swachh Bharat Mission) / GHMC
+    purpose: Urban local body (municipality) boundaries
+    source_url: https://sbm.gov.in/
+    crs: EPSG:4326
+    ttl: 365d
+    update_frequency: as-notified
+    license: Government Open Data License – India (GODL)
+    layers: [administrative]
+  ghmc_wards:
+    name: GHMC Ward Boundaries
+    provider: Greater Hyderabad Municipal Corporation
+    version: "2022"
+    purpose: Municipal ward boundaries (Greater Hyderabad)
+    source_url: https://data.opencity.in/dataset/hyderabad-wards-info
+    crs: EPSG:4326
+    ttl: 365d
+    update_frequency: as-notified
+    license: GHMC (via OpenCity)
+    layers: [administrative]

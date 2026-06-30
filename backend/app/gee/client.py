@@ -77,3 +77,42 @@ class EarthEngineClient:
         value = self.point_value(dataset, dataset.bands[0], lat, lng, scale=30)
         logger.info("gee.sample_elevation", lat=lat, lng=lng, value=value)
         return value
+
+    # --- Terrain derivatives (SRS §18.3 slope/aspect from a DEM) ----------- #
+    def _reduce_image(
+        self, image: Any, band: str, lat: float, lng: float, *, scale: float
+    ) -> float | None:
+        """Mean-reduce one band of an arbitrary image at a point (SRS §19.6)."""
+        point = self._ee.Geometry.Point([lng, lat])  # WGS84 (lng, lat)
+        reduced = image.reduceRegion(
+            reducer=self._ee.Reducer.mean(),
+            geometry=point,
+            scale=scale,
+            maxPixels=1_000_000_000,
+        )
+        value = reduced.get(band).getInfo()
+        return None if value is None else float(value)
+
+    def sample_terrain(
+        self, dataset: GEEDataset, lat: float, lng: float, *, scale: float = 30
+    ) -> dict[str, float | None]:
+        """Sample elevation and its slope/aspect derivatives from a DEM.
+
+        Slope and aspect are computed on-the-fly with ``ee.Terrain`` (SRS §18.3),
+        so all three terrain values come from the same elevation source. Each
+        value is ``None`` where the DEM has no coverage (SRS §15.17).
+        """
+        dem = self._image(dataset, dataset.bands[0])
+        elevation = self._reduce_image(dem, dataset.bands[0], lat, lng, scale=scale)
+        slope = self._reduce_image(self._ee.Terrain.slope(dem), "slope", lat, lng, scale=scale)
+        aspect = self._reduce_image(self._ee.Terrain.aspect(dem), "aspect", lat, lng, scale=scale)
+        logger.info(
+            "gee.sample_terrain",
+            lat=lat,
+            lng=lng,
+            dataset=dataset.key,
+            elevation=elevation,
+            slope=slope,
+            aspect=aspect,
+        )
+        return {"elevation": elevation, "slope": slope, "aspect": aspect}

@@ -112,8 +112,12 @@ class StateDetectionService:
         return result.scalars().first()
 
 
-def _validate_coordinate(lat: float, lng: float) -> None:
-    """Validate WGS84 latitude/longitude ranges (SRS §15.6)."""
+def validate_coordinate(lat: float, lng: float) -> None:
+    """Validate WGS84 latitude/longitude ranges (SRS §15.6, §13.18).
+
+    Public so the Fetch Orchestrator can run coordinate validation as its first
+    workflow step (SRS §15.4) independently of state detection.
+    """
     if not (-90.0 <= lat <= 90.0):
         raise ValidationAppError(
             f"Latitude out of range: {lat}",
@@ -124,6 +128,10 @@ def _validate_coordinate(lat: float, lng: float) -> None:
             f"Longitude out of range: {lng}",
             details="Longitude must be within [-180, 180].",
         )
+
+
+# Backwards-compatible internal alias.
+_validate_coordinate = validate_coordinate
 
 
 async def get_state_detection_service(session: AsyncSession) -> StateDetectionService:
