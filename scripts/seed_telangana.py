@@ -95,8 +95,19 @@ def _seed_dir() -> Path:
 
 
 def _load_features(name: str) -> list[tuple[dict[str, Any], BaseGeometry]]:
-    """Load ``<seed_dir>/<name>.geojson`` as (properties, shapely geometry) pairs."""
+    """Load ``<seed_dir>/<name>.geojson`` as (properties, shapely geometry) pairs.
+
+    A missing fixture is treated as empty rather than an error: large generated
+    boundary layers (e.g. ``villages.geojson``) are git-ignored and materialized
+    by ``scripts/fetch_telangana_admin.py``, so a fresh checkout seeds the
+    committed layers and simply resolves the absent ones to ``null``.
+    """
     path = _seed_dir() / f"{name}.geojson"
+    if not path.exists():
+        logger.warning(
+            "seed.fixture_missing", fixture=f"{name}.geojson", action="treated as empty"
+        )
+        return []
     data = json.loads(path.read_text(encoding="utf-8"))
     features = []
     for feat in data.get("features", []):

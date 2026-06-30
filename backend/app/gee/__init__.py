@@ -10,13 +10,20 @@ from __future__ import annotations
 
 from app.gee.auth import initialize_earth_engine
 from app.gee.client import EarthEngineClient
-from app.gee.datasets import DATASETS, ELEVATION_DATASET_KEY, GEEDataset, get_dataset
+from app.gee.datasets import (
+    DATASETS,
+    ELEVATION_DATASET_KEY,
+    TERRAIN_DEM_KEY,
+    GEEDataset,
+    get_dataset,
+)
 
 __all__ = [
     "EarthEngineClient",
     "initialize_earth_engine",
     "DATASETS",
     "ELEVATION_DATASET_KEY",
+    "TERRAIN_DEM_KEY",
     "GEEDataset",
     "get_dataset",
 ]

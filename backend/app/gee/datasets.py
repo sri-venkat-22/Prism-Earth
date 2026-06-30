@@ -138,6 +138,13 @@ DATASETS: dict[str, GEEDataset] = {
 # The dataset the elevation smoke test samples (SRS §19, DoD #3).
 ELEVATION_DATASET_KEY = "srtm"
 
+# The DEM the Terrain connector samples for elevation/slope/aspect (SRS §18.3).
+# SRS §18.3 designates ISRO CartoDEM as the primary terrain source, but CartoDEM
+# is not in the public Earth Engine catalog; Copernicus DEM GLO-30 is the
+# §19.4-registered production DEM (and the catalog's documented elevation
+# fallback), so terrain provenance honestly cites Copernicus DEM (SRS §16.4).
+TERRAIN_DEM_KEY = "copernicus_dem"
+
 
 def get_dataset(key: str) -> GEEDataset:
     """Return a registered dataset descriptor by key."""
