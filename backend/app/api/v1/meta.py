@@ -5,8 +5,8 @@ registry the Planner, frontend, MCP server, and third-party developers use to
 discover supported fields, layers, and presets — plus the State Registry.
 
 - ``GET /api/v1/meta/fields``          — the field catalog (SRS §13.6)
-- ``GET /api/v1/meta/layers``          — the seven domain layers (SRS §13.7)
-- ``GET /api/v1/meta/presets``         — the 14 presets (SRS §13.8)
+- ``GET /api/v1/meta/layers``          — the domain layers (SRS §13.7)
+- ``GET /api/v1/meta/presets``         — the presets (SRS §13.8)
 - ``GET /api/v1/meta/states``          — registered regions (SRS §21)
 - ``GET /api/v1/meta/states/{name}``   — resolve a region's availability (§13.23)
 """
@@ -69,7 +69,7 @@ async def list_fields(
 
 @router.get("/layers", response_model=LayersResponse, summary="Domain layers (SRS §13.7)")
 async def list_layers() -> LayersResponse:
-    """Return the seven supported logical layers."""
+    """Return the supported logical layers."""
     catalog = _catalog()
     objects = [layer_object(layer, catalog) for layer in catalog.layers()]
     return LayersResponse(count=len(objects), layers=objects)

@@ -39,8 +39,14 @@ LAYERS: tuple[LayerDefinition, ...] = (
     LayerDefinition(
         id=Layer.INFRASTRUCTURE,
         name="Infrastructure",
-        purpose="Roads, power, telecom, population",
+        purpose="Transport & access: roads, railways, airports, population",
         connector="infrastructure_connector",
+    ),
+    LayerDefinition(
+        id=Layer.UTILITIES,
+        name="Utilities",
+        purpose="Power, grid, substations, transmission, telecom",
+        connector="utilities_connector",
     ),
     LayerDefinition(
         id=Layer.ADMINISTRATIVE,
@@ -53,5 +59,11 @@ LAYERS: tuple[LayerDefinition, ...] = (
         name="Cadastral",
         purpose="Parcel, survey number, zoning",
         connector="cadastral_connector",
+    ),
+    LayerDefinition(
+        id=Layer.BUILT_ENVIRONMENT,
+        name="Built Environment",
+        purpose="Building footprints, density, rooftops",
+        connector="built_environment_connector",
     ),
 )

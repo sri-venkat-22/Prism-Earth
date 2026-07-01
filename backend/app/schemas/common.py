@@ -94,3 +94,22 @@ class LivenessResponse(BaseModel):
 
     status: str = "alive"
     timestamp: str
+
+
+class ConnectorHealthObject(BaseModel):
+    """Per-connector operational status (SRS §18.12)."""
+
+    name: str = Field(..., description="Connector registry key (SRS §18.10)")
+    layer: str = Field(..., description="Domain layer the connector serves (SRS §11.5)")
+    status: str = Field(..., description="ok | degraded | down | not_configured")
+    servable_fields: int = Field(..., description="Count of fields the connector can retrieve")
+    detail: str | None = None
+
+
+class ConnectorsHealthResponse(BaseModel):
+    """``GET /api/v1/health/connectors`` payload (SRS §18.12)."""
+
+    status: str = "ok"
+    timestamp: str
+    count: int
+    connectors: list[ConnectorHealthObject] = Field(default_factory=list)

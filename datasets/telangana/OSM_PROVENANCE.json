@@ -1,0 +1,32 @@
+{
+  "roads": {
+    "dataset": "OpenStreetMap",
+    "tags": "highway=motorway/trunk/primary/secondary"
+  },
+  "railways": {
+    "dataset": "OpenStreetMap",
+    "tags": "railway=rail"
+  },
+  "substations": {
+    "dataset": "OpenStreetMap",
+    "tags": "power=substation"
+  },
+  "transmission_lines": {
+    "dataset": "OpenStreetMap",
+    "tags": "power=line"
+  },
+  "water_bodies": {
+    "dataset": "OpenStreetMap",
+    "tags": "natural=water (closed ways only)"
+  },
+  "source": "Geofabrik Southern Zone extract, clipped to Telangana",
+  "source_url": "https://download.geofabrik.de/asia/india/southern-zone.html",
+  "license": "ODbL \u2014 \u00a9 OpenStreetMap contributors",
+  "counts": {
+    "roads": 16157,
+    "railways": 2724,
+    "substations": 818,
+    "transmission_lines": 1936,
+    "water_bodies": 7445
+  }
+}

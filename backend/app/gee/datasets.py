@@ -56,12 +56,40 @@ DATASETS: dict[str, GEEDataset] = {
         purpose="Climate Indicators",
         ee_id="IDAHO_EPSCOR/TERRACLIMATE",
         is_collection=True,
-        bands=("ppt", "tmmx", "tmmn", "aet", "pdsi"),
+        bands=("pr", "tmmx", "tmmn", "aet", "pet", "pdsi"),
         spatial_resolution="4638m",
         temporal_resolution="monthly",
         source_url="https://developers.google.com/earth-engine/datasets/catalog/IDAHO_EPSCOR_TERRACLIMATE",
         ttl="30d",
         layers=("climate",),
+    ),
+    "era5": GEEDataset(
+        key="era5",
+        name="ERA5",
+        provider="ECMWF / Copernicus C3S",
+        purpose="Wind speed (climate)",
+        ee_id="ECMWF/ERA5_LAND/MONTHLY_AGGR",
+        is_collection=True,
+        bands=("u_component_of_wind_10m", "v_component_of_wind_10m"),
+        spatial_resolution="11132m",
+        temporal_resolution="monthly",
+        source_url="https://developers.google.com/earth-engine/datasets/catalog/ECMWF_ERA5_LAND_MONTHLY_AGGR",
+        ttl="30d",
+        layers=("climate",),
+    ),
+    "esa_worldcover": GEEDataset(
+        key="esa_worldcover",
+        name="ESA WorldCover",
+        provider="ESA",
+        purpose="Land-cover classification, tree canopy, wetlands",
+        ee_id="ESA/WorldCover/v200",
+        is_collection=True,
+        bands=("Map",),
+        spatial_resolution="10m",
+        temporal_resolution="2021",
+        source_url="https://developers.google.com/earth-engine/datasets/catalog/ESA_WorldCover_v200",
+        ttl="365d",
+        layers=("land_cover",),
     ),
     "jrc_surface_water": GEEDataset(
         key="jrc_surface_water",
@@ -75,6 +103,28 @@ DATASETS: dict[str, GEEDataset] = {
         temporal_resolution="1984-2021",
         source_url="https://developers.google.com/earth-engine/datasets/catalog/JRC_GSW1_4_GlobalSurfaceWater",
         ttl="90d",
+        layers=("natural_hazard",),
+    ),
+    "jrc_glofas_flood_hazard": GEEDataset(
+        key="jrc_glofas_flood_hazard",
+        name="JRC Global River Flood Hazard Maps",
+        provider="EC JRC / Copernicus Emergency Management Service (GloFAS)",
+        purpose="River flood hazard by return period (natural hazard)",
+        ee_id="JRC/CEMS_GLOFAS/FloodHazard/v2_1",
+        is_collection=True,
+        bands=(
+            "RP10_depth",
+            "RP20_depth",
+            "RP50_depth",
+            "RP75_depth",
+            "RP100_depth",
+            "RP200_depth",
+            "RP500_depth",
+        ),
+        spatial_resolution="90m",
+        temporal_resolution="static (2024 release)",
+        source_url="https://developers.google.com/earth-engine/datasets/catalog/JRC_CEMS_GLOFAS_FloodHazard_v2_1",
+        ttl="365d",
         layers=("natural_hazard",),
     ),
     "copernicus_dem": GEEDataset(
@@ -144,6 +194,22 @@ ELEVATION_DATASET_KEY = "srtm"
 # §19.4-registered production DEM (and the catalog's documented elevation
 # fallback), so terrain provenance honestly cites Copernicus DEM (SRS §16.4).
 TERRAIN_DEM_KEY = "copernicus_dem"
+
+# Dataset keys the Phase 4 GEE connectors sample (SRS §18.4–18.6).
+TERRACLIMATE_KEY = "terraclimate"
+ERA5_KEY = "era5"
+SENTINEL2_KEY = "sentinel2"
+MODIS_NDVI_KEY = "modis_vegetation"
+WORLDCOVER_KEY = "esa_worldcover"
+JRC_SURFACE_WATER_KEY = "jrc_surface_water"
+JRC_GLOFAS_FLOOD_HAZARD_KEY = "jrc_glofas_flood_hazard"
+VIIRS_FIRE_KEY = "viirs_fire"
+
+# Google Open Buildings is a vector FeatureCollection (no raster bands), so it is
+# not a raster :class:`GEEDataset`; the Built-Environment connector queries this
+# asset directly and cites the ``configs/datasets.yaml`` registry entry.
+OPEN_BUILDINGS_ASSET = "GOOGLE/Research/open-buildings/v3/polygons"
+OPEN_BUILDINGS_DATASET = "Google Open Buildings"
 
 
 def get_dataset(key: str) -> GEEDataset:

@@ -25,7 +25,7 @@ def test_catalog_has_seven_layers() -> None:
     assert all(layer.connector for layer in catalog.layers())
 
 
-def test_catalog_has_fourteen_presets() -> None:
+def test_catalog_has_expected_preset_count() -> None:
     assert len(build_catalog().presets()) == EXPECTED_PRESET_COUNT
 
 
@@ -68,7 +68,7 @@ def test_get_meta_fields_returns_catalog_with_flags(client: TestClient) -> None:
     assert field["connector"] == "terrain_connector"
 
 
-def test_get_meta_layers_returns_seven(client: TestClient) -> None:
+def test_get_meta_layers_returns_all(client: TestClient) -> None:
     resp = client.get("/api/v1/meta/layers")
     assert resp.status_code == 200
     body = resp.json()
@@ -80,13 +80,15 @@ def test_get_meta_layers_returns_seven(client: TestClient) -> None:
         "land_cover",
         "natural_hazard",
         "infrastructure",
+        "utilities",
         "administrative",
         "cadastral",
+        "built_environment",
     ]
 
 
 def test_get_meta_presets_expand_to_valid_fields(client: TestClient) -> None:
-    """DoD: GET /meta/presets returns 14 presets expanding to valid fields."""
+    """DoD: GET /meta/presets returns presets that expand to valid fields."""
     catalog = build_catalog()
     resp = client.get("/api/v1/meta/presets")
     assert resp.status_code == 200

@@ -15,11 +15,15 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Response, status
 
+from app.connectors import build_connector_registry
 from app.core.config import Settings, get_settings
 from app.core.database import ping_database
 from app.core.redis import ping_redis
+from app.metadata.catalog import get_catalog
 from app.schemas.common import (
     ComponentStatus,
+    ConnectorHealthObject,
+    ConnectorsHealthResponse,
     HealthResponse,
     LivenessResponse,
     ReadinessResponse,
@@ -28,10 +32,12 @@ from app.utils.time import utcnow_iso
 
 router = APIRouter(tags=["health"])
 
-# Placeholder for subsystems introduced in later phases.
-_CONNECTORS_PHASE0 = ComponentStatus(
-    status="not_applicable", detail="No connectors registered until Phase 3 (SRS §18)"
-)
+
+def _connectors_status() -> ComponentStatus:
+    """Summarize registered-connector status for the top-level health payload."""
+    registry = build_connector_registry(get_catalog())
+    count = len(registry.connectors())
+    return ComponentStatus(status="ok", detail=f"{count} connectors registered (SRS §18.10)")
 
 
 def _earth_engine_status(settings: Settings) -> ComponentStatus:
@@ -62,8 +68,42 @@ async def health() -> HealthResponse:
             "database": ComponentStatus(status="ok" if db_ok else "down"),
             "redis": ComponentStatus(status="ok" if redis_ok else "down"),
             "earth_engine": _earth_engine_status(settings),
-            "connectors": _CONNECTORS_PHASE0,
+            "connectors": _connectors_status(),
         },
+    )
+
+
+@router.get(
+    "/health/connectors",
+    response_model=ConnectorsHealthResponse,
+    summary="Per-connector health (SRS §18.12)",
+)
+async def connectors_health() -> ConnectorsHealthResponse:
+    """Report each registered connector's operational status (SRS §18.12).
+
+    Catalog-driven: every domain layer's connector is listed with the number of
+    fields it can serve. Always ``200`` — a degraded connector is reported, not
+    raised, so callers can see the whole fleet's state at a glance.
+    """
+    registry = build_connector_registry(get_catalog())
+    connectors: list[ConnectorHealthObject] = []
+    for connector in registry.connectors():
+        health_report = await connector.health()
+        connectors.append(
+            ConnectorHealthObject(
+                name=connector.name,
+                layer=connector.layer.value,
+                status=health_report.status,
+                servable_fields=len(connector.servable_fields()),
+                detail=health_report.detail,
+            )
+        )
+    overall = "ok" if all(c.status == "ok" for c in connectors) else "degraded"
+    return ConnectorsHealthResponse(
+        status=overall,
+        timestamp=utcnow_iso(),
+        count=len(connectors),
+        connectors=connectors,
     )
 
 

@@ -116,9 +116,9 @@ PRESETS: tuple[PresetDefinition, ...] = (
         ),
     ),
     PresetDefinition(
-        id="renewable_siting",
-        name="Renewable Energy Siting",
-        description="Terrain, climate, and grid-access signals for renewable siting.",
+        id="solar_siting",
+        name="Solar Siting",
+        description="Terrain orientation, temperature, and grid-access signals for solar PV.",
         fields=(
             "elevation",
             "slope",
@@ -169,6 +169,60 @@ PRESETS: tuple[PresetDefinition, ...] = (
             "urban_local_body",
             "electricity_distribution_company",
             "industrial_tariff",
+        ),
+    ),
+    # Commercial-vertical bundles (siting / underwriting), aligned to the
+    # use-case-oriented presets common to geospatial-intelligence platforms.
+    PresetDefinition(
+        id="building_lookup",
+        name="Building Lookup",
+        description="Building footprint and built-up density at a coordinate.",
+        fields=(
+            "building_present",
+            "building_footprint_area_m2",
+            "building_count_250m",
+            "nearest_building_distance_m",
+            "built_up_area_pct_1km",
+        ),
+    ),
+    PresetDefinition(
+        id="wind_siting",
+        name="Wind Siting",
+        description="Wind, terrain, and grid-access signals for wind-energy siting.",
+        fields=(
+            "elevation",
+            "slope",
+            "wind_speed",
+            "dominant_land_cover",
+            "nearest_substation_distance",
+            "nearest_powerline_distance",
+        ),
+    ),
+    PresetDefinition(
+        id="data_center_siting",
+        name="Data Center Siting",
+        description="Power, connectivity, hazard, and land signals for data-center siting.",
+        fields=(
+            "nearest_substation_distance",
+            "nearest_powerline_distance",
+            "telecom_coverage",
+            "flood_hazard_class",
+            "elevation",
+            "slope",
+            "nearest_highway_distance",
+            "annual_temperature_c",
+        ),
+    ),
+    PresetDefinition(
+        id="grid_interconnect",
+        name="Grid Interconnect",
+        description="Proximity to grid and access infrastructure for interconnection.",
+        fields=(
+            "nearest_substation_distance",
+            "nearest_powerline_distance",
+            "nearest_highway_distance",
+            "elevation",
+            "flood_hazard_class",
         ),
     ),
 )
