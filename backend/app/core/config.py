@@ -71,6 +71,22 @@ class Settings(BaseSettings):
     earth_engine_key_file: str | None = None
     earth_engine_project: str | None = None
 
+    # --- AI pipeline / LLM (SRS §9, §14) --------------------------------
+    # The Planner and Synthesizer call a configurable model through LiteLLM
+    # (SRS §9: "LangChain, LiteLLM, OpenAI / Claude (configurable)"). The model
+    # string is a LiteLLM route (e.g. ``anthropic/claude-opus-4-8`` or
+    # ``openai/gpt-4o``); the provider credential is read from the provider's
+    # own environment variable (``ANTHROPIC_API_KEY`` / ``OPENAI_API_KEY``) or
+    # from ``llm_api_key`` below. When no credential is configured, ``/ask``
+    # returns a clear 503 rather than fabricating a plan or answer (SRS §38.8).
+    llm_model: str = "anthropic/claude-opus-4-8"
+    llm_temperature: float = (
+        0.0  # deterministic planning (SRS §14.13); dropped for models that reject it
+    )
+    llm_max_tokens: int = 1024
+    llm_timeout: float = 30.0
+    llm_api_key: str | None = None
+
     @property
     def database_url(self) -> str:
         """Async SQLAlchemy DSN (asyncpg driver)."""
