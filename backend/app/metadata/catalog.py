@@ -10,9 +10,12 @@ field ↔ preset mapping), resolves each field's connector via its layer, and
 exposes the lifecycle-enforcement helpers required by SRS §11.6 — ``planned``
 fields are never selectable or fetchable.
 
-Canonical Version-1 counts (SRS §11.4): 7 layers and 14 presets. The active
-field catalog grows toward the 157-field target; implemented fields are stable
-or beta and the remainder are ``planned``.
+Catalog counts: 9 layers and 18 presets. This extends the SRS §11.4 Version-1
+baseline (7 layers / 14 presets) with a Built Environment layer, a Utilities
+layer (split out of Infrastructure), and four commercial-vertical presets
+(building_lookup, wind_siting, data_center_siting, grid_interconnect). The SRS
+v1.1 document reflects these. The active field catalog grows toward the
+157-field target; implemented fields are stable or beta and the rest ``planned``.
 """
 
 from __future__ import annotations
@@ -26,9 +29,9 @@ from app.metadata.seed_fields import FIELDS
 from app.metadata.seed_layers import LAYERS
 from app.metadata.seed_presets import PRESETS
 
-# Canonical counts asserted by the validator (SRS §11.4).
-EXPECTED_LAYER_COUNT = 7
-EXPECTED_PRESET_COUNT = 14
+# Catalog counts asserted by the validator (SRS v1.1; extends the 7/14 baseline).
+EXPECTED_LAYER_COUNT = 9
+EXPECTED_PRESET_COUNT = 18
 
 
 class Catalog:

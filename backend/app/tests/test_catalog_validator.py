@@ -6,7 +6,12 @@ must fail the validator.
 
 from __future__ import annotations
 
-from app.metadata.catalog import Catalog, build_catalog
+from app.metadata.catalog import (
+    EXPECTED_LAYER_COUNT,
+    EXPECTED_PRESET_COUNT,
+    Catalog,
+    build_catalog,
+)
 from app.metadata.enums import Layer
 from app.metadata.models import PresetDefinition
 from app.metadata.seed_fields import FIELDS
@@ -20,8 +25,8 @@ def test_real_catalog_validates_clean() -> None:
     """DoD: the catalog validator passes for the shipped catalog."""
     report = validate_catalog(build_catalog(), build_state_registry())
     assert report.ok, report.errors
-    assert report.stats.layers == 7
-    assert report.stats.presets == 14
+    assert report.stats.layers == EXPECTED_LAYER_COUNT
+    assert report.stats.presets == EXPECTED_PRESET_COUNT
     assert report.stats.planned > 0
     report.raise_for_status()  # must not raise
 

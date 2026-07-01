@@ -11,8 +11,19 @@ from __future__ import annotations
 from app.citations.engine import CitationEngine
 from app.connectors.administrative import AdministrativeConnector
 from app.connectors.base import BaseConnector
+from app.connectors.built_environment import BuildingSample, BuiltEnvironmentConnector
+from app.connectors.cadastral import CadastralConnector, ParcelRecord
+from app.connectors.climate import ClimateConnector, ClimateSample
+from app.connectors.infrastructure import InfrastructureConnector, InfrastructureSample
+from app.connectors.land_cover import LandCoverConnector, LandCoverSample
+from app.connectors.natural_hazard import (
+    HazardRasterSample,
+    HazardVectorSample,
+    NaturalHazardConnector,
+)
 from app.connectors.registry import ConnectorRegistry
 from app.connectors.terrain import TerrainConnector, TerrainSample
+from app.connectors.utilities import UtilitiesConnector, UtilitiesSample
 from app.datasets.registry import get_dataset_registry
 from app.fetchers.orchestrator import FetchOrchestrator
 from app.metadata.catalog import get_catalog
@@ -114,3 +125,130 @@ def build_orchestrator(
         provenance=ProvenanceGenerator(catalog, dataset_registry),
         citations=CitationEngine(dataset_registry),
     )
+
+
+# --------------------------------------------------------------------------- #
+# Phase 4 fake sources — one per connector, returning fixed sample values so    #
+# the whole nine-connector fleet is proven end-to-end without live services.    #
+# --------------------------------------------------------------------------- #
+class FakeClimateSource:
+    def __init__(self, sample: ClimateSample | None = None) -> None:
+        self._sample = sample or ClimateSample(
+            annual_rainfall_mm=812.5,
+            annual_temperature_c=27.3,
+            aridity_index=0.42,
+            evapotranspiration=640.0,
+            wind_speed=3.1,
+        )
+
+    def sample(self, lat: float, lng: float) -> ClimateSample:
+        return self._sample
+
+
+class FakeLandCoverSource:
+    def __init__(self, sample: LandCoverSample | None = None) -> None:
+        self._sample = sample or LandCoverSample(
+            ndvi_current=0.62,
+            ndvi_historical=0.55,
+            dominant_land_cover="cropland",
+            tree_canopy_pct=12.5,
+            wetland_presence=False,
+        )
+
+    def sample(self, lat: float, lng: float) -> LandCoverSample:
+        return self._sample
+
+
+class FakeHazardVectorSource:
+    def __init__(self, sample: HazardVectorSample | None = None) -> None:
+        self._sample = sample or HazardVectorSample(
+            nearest_waterbody_distance_m=320.0,
+            nearest_waterbody_name="Hussain Sagar",
+        )
+
+    async def sample(self, lat: float, lng: float) -> HazardVectorSample:
+        return self._sample
+
+
+class FakeHazardRasterSource:
+    def __init__(self, sample: HazardRasterSample | None = None) -> None:
+        self._sample = sample or HazardRasterSample(
+            flood_hazard_class="moderate",
+            within_flood_hazard_polygon=True,
+            surface_water_permanence_pct=8.0,
+            active_fire_count_10km_24h=0,
+        )
+
+    def sample(self, lat: float, lng: float) -> HazardRasterSample:
+        return self._sample
+
+
+class FakeInfrastructureSource:
+    def __init__(self, sample: InfrastructureSample | None = None) -> None:
+        self._sample = sample or InfrastructureSample(
+            nearest_highway_distance=1500.0,
+            nearest_railway_distance=2300.0,
+        )
+
+    async def sample(self, lat: float, lng: float) -> InfrastructureSample:
+        return self._sample
+
+
+class FakeUtilitiesSource:
+    def __init__(self, sample: UtilitiesSample | None = None) -> None:
+        self._sample = sample or UtilitiesSample(
+            nearest_substation_distance=800.0,
+            nearest_powerline_distance=1200.0,
+        )
+
+    async def sample(self, lat: float, lng: float) -> UtilitiesSample:
+        return self._sample
+
+
+class FakeCadastralSource:
+    def __init__(self, record: ParcelRecord | None = None) -> None:
+        self._record = record or ParcelRecord(
+            parcel_id="HYD-KHB-001",
+            survey_number="123/A",
+            parcel_area=4500.0,
+            parcel_geometry='{"type": "Polygon", "coordinates": []}',
+            zoning="residential",
+            ownership_category="private",
+        )
+
+    async def parcel_at(self, lat: float, lng: float) -> ParcelRecord:
+        return self._record
+
+
+class FakeBuildingsSource:
+    def __init__(self, sample: BuildingSample | None = None) -> None:
+        self._sample = sample or BuildingSample(
+            building_present=True,
+            building_footprint_area_m2=250.0,
+            building_count_250m=42,
+            nearest_building_distance_m=0.0,
+            built_up_area_pct_1km=18.5,
+        )
+
+    def sample(self, lat: float, lng: float) -> BuildingSample:
+        return self._sample
+
+
+def build_all_fake_connectors() -> list[BaseConnector]:
+    """The full Version-1 fleet (nine connectors) backed by fake sources."""
+    return [
+        TerrainConnector(FakeTerrainSource()),
+        ClimateConnector(FakeClimateSource()),
+        LandCoverConnector(FakeLandCoverSource()),
+        NaturalHazardConnector(vector=FakeHazardVectorSource(), raster=FakeHazardRasterSource()),
+        InfrastructureConnector(FakeInfrastructureSource()),
+        UtilitiesConnector(FakeUtilitiesSource()),
+        AdministrativeConnector(),
+        CadastralConnector(FakeCadastralSource()),
+        BuiltEnvironmentConnector(FakeBuildingsSource()),
+    ]
+
+
+def build_full_orchestrator(context: SpatialContext | None = None) -> FetchOrchestrator:
+    """A FetchOrchestrator wired with all nine connectors (fake-backed)."""
+    return build_orchestrator(context=context, connectors=build_all_fake_connectors())

@@ -43,20 +43,65 @@ datasets:
     update_frequency: monthly
     license: CC0
     layers: [climate]
+  era5:
+    name: ERA5
+    provider: ECMWF / Copernicus Climate Change Service (C3S)
+    purpose: Wind speed (climate)
+    source_url: https://developers.google.com/earth-engine/datasets/catalog/ECMWF_ERA5_LAND_MONTHLY_AGGR
+    crs: EPSG:4326
+    ttl: 30d
+    spatial_resolution: 11132m
+    temporal_resolution: monthly
+    update_frequency: monthly
+    license: Copernicus License (free, open, no restriction)
+    layers: [climate]
+  esa_worldcover:
+    name: ESA WorldCover
+    provider: European Space Agency
+    version: v200 (2021)
+    purpose: Land-cover classification, tree canopy, wetlands
+    source_url: https://developers.google.com/earth-engine/datasets/catalog/ESA_WorldCover_v200
+    crs: EPSG:4326
+    ttl: 365d
+    spatial_resolution: 10m
+    update_frequency: periodic (per release)
+    license: CC BY 4.0
+    layers: [land_cover]
+  # No open bulk CWC flood-hazard GIS layer exists for Telangana (NRSC's Flood
+  # Hazard Zonation Atlas covers Bihar only; Bhuvan/NDEM's flood layers are
+  # login/VPN-gated viewers, not downloadable data — confirmed by research
+  # 2026-07-01). Kept here, unused by any connector, as a placeholder for if a
+  # real CWC feed becomes available; flood_hazard_class and
+  # within_flood_hazard_polygon are served by jrc_glofas_flood_hazard below.
   cwc_flood:
     name: CWC Flood Data
     provider: Central Water Commission
-    purpose: Flood hazard zones, historical floods
+    purpose: Flood hazard zones, historical floods (not currently available in bulk)
     source_url: https://cwc.gov.in/
     crs: EPSG:4326
     ttl: 1d
     update_frequency: seasonal
     license: Govt. of India
     layers: [natural_hazard]
+  jrc_glofas_flood_hazard:
+    name: JRC Global River Flood Hazard Maps
+    provider: EC JRC / Copernicus Emergency Management Service (GloFAS)
+    version: v2.1
+    purpose: River flood hazard by return period (natural hazard)
+    source_url: https://developers.google.com/earth-engine/datasets/catalog/JRC_CEMS_GLOFAS_FloodHazard_v2_1
+    crs: EPSG:4326
+    ttl: 365d
+    spatial_resolution: 90m
+    update_frequency: static (2024 release)
+    license: JRC Open Data (available without restriction on use or distribution)
+    layers: [natural_hazard]
+  # Kept as a placeholder for a possible future real NRSC feed; the
+  # nearest_waterbody_* fields are served from the OpenStreetMap-seeded
+  # waterbody table (see `openstreetmap` below), the honest current source.
   nrsc_waterbodies:
     name: NRSC Waterbody Database
     provider: NRSC / ISRO
-    purpose: Surface water bodies
+    purpose: Surface water bodies (not currently available in bulk)
     source_url: https://bhuvan.nrsc.gov.in/
     crs: EPSG:4326
     ttl: 90d
@@ -117,3 +162,43 @@ datasets:
     update_frequency: as-notified
     license: GHMC (via OpenCity)
     layers: [administrative]
+  google_open_buildings:
+    name: Google Open Buildings
+    provider: Google Research
+    version: v3
+    purpose: Building footprints, density, rooftops (built environment)
+    source_url: https://sites.research.google/open-buildings/
+    crs: EPSG:4326
+    ttl: 365d
+    spatial_resolution: footprint polygons
+    update_frequency: periodic
+    license: CC BY-4.0 / ODbL
+    layers: [built_environment]
+  openstreetmap:
+    name: OpenStreetMap
+    provider: OpenStreetMap contributors
+    purpose: >-
+      Roads, railways, substations, transmission lines, water bodies
+      (infrastructure, utilities, natural hazard)
+    source_url: https://www.openstreetmap.org/
+    crs: EPSG:4326
+    ttl: 90d
+    update_frequency: continuous
+    license: ODbL
+    layers: [infrastructure, utilities, natural_hazard]
+  # Telangana replaced Dharani with "Bhu Bharati" (Telangana Bhu Bharati RoR
+  # Act, in force since 2025-04-14; confirmed by research 2026-07-01). Access
+  # model is unchanged: bhubharati.telangana.gov.in/gis/ is a manual
+  # district->mandal->village->parcel click-through viewer, no bulk export or
+  # API — cadastral fields remain region-gated and null outside a manually
+  # curated dev fixture (SRS §24.3).
+  telangana_bhu_bharati:
+    name: Telangana Bhu Bharati
+    provider: Government of Telangana
+    purpose: Cadastral parcels, survey numbers, zoning, ownership (region-gated)
+    source_url: https://bhubharati.telangana.gov.in/
+    crs: EPSG:4326
+    ttl: 90d
+    update_frequency: as-notified
+    license: Government of Telangana
+    layers: [cadastral]

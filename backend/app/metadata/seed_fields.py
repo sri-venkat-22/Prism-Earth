@@ -116,6 +116,7 @@ def _planned(
 
 
 _BHUVAN = "https://bhuvan.nrsc.gov.in/"
+_OSM = "https://www.openstreetmap.org/"
 
 # --------------------------------------------------------------------------- #
 # Terrain (SRS §18.3) — ISRO Bhuvan CartoDEM, Copernicus DEM, SoilGrids       #
@@ -356,8 +357,16 @@ _LAND_COVER = (
 )
 
 # --------------------------------------------------------------------------- #
-# Natural Hazard (SRS §18.6) — CWC, NRSC Waterbodies, JRC GSW, NASA FIRMS     #
+# Natural Hazard (SRS §18.6) — JRC GloFAS, OpenStreetMap, JRC GSW, NASA FIRMS #
 # --------------------------------------------------------------------------- #
+# No open bulk CWC/NRSC flood-hazard GIS layer exists for Telangana (confirmed
+# by research 2026-07-01: NRSC's Flood Hazard Zonation Atlas covers Bihar only;
+# Bhuvan/NDEM's flood layers are login/VPN-gated viewers). flood_hazard_class and
+# within_flood_hazard_polygon are derived instead from JRC's Global River Flood
+# Hazard Maps (GloFAS v2.1, sampled live via Earth Engine, SRS §16.4 Accuracy).
+_GLOFAS = (
+    "https://developers.google.com/earth-engine/datasets/catalog/JRC_CEMS_GLOFAS_FloodHazard_v2_1"
+)
 _FIRMS = "https://firms.modaps.eosdis.nasa.gov/"
 _NATURAL_HAZARD = (
     _field(
@@ -365,22 +374,25 @@ _NATURAL_HAZARD = (
         layer=Layer.NATURAL_HAZARD,
         datatype=DataType.ENUM,
         description="Categorical flood hazard level.",
-        source="Central Water Commission (CWC)",
-        source_url="https://cwc.gov.in/",
-        ttl="90d",
+        source="JRC Global River Flood Hazard Maps",
+        source_url=_GLOFAS,
+        ttl="365d",
         nullable=True,
         null_meaning="No flood hazard mapping covers this location.",
-        hint="low / moderate / high / very_high.",
+        hint=(
+            "low / moderate / high / very_high, derived from the shortest GloFAS "
+            "return period (10-500yr) at which the point is modelled as inundated."
+        ),
     ),
     _field(
         "within_flood_hazard_polygon",
         layer=Layer.NATURAL_HAZARD,
         datatype=DataType.BOOLEAN,
         description="Whether the point lies inside a mapped flood hazard polygon.",
-        source="Central Water Commission (CWC)",
-        source_url="https://cwc.gov.in/",
-        ttl="90d",
-        hint="True is a strong, binary flood-exposure signal for underwriting.",
+        source="JRC Global River Flood Hazard Maps",
+        source_url=_GLOFAS,
+        ttl="365d",
+        hint="True indicates inundation at any GloFAS return period up to 500 years.",
     ),
     _field(
         "nearest_waterbody_distance_m",
@@ -388,9 +400,9 @@ _NATURAL_HAZARD = (
         datatype=DataType.FLOAT,
         unit="m",
         description="Straight-line distance to the nearest mapped waterbody.",
-        source="NRSC Waterbody Database",
-        source_url=_BHUVAN,
-        ttl="180d",
+        source="OpenStreetMap",
+        source_url=_OSM,
+        ttl="90d",
         hint="Smaller distances raise flood and seepage exposure.",
     ),
     _field(
@@ -398,10 +410,10 @@ _NATURAL_HAZARD = (
         layer=Layer.NATURAL_HAZARD,
         datatype=DataType.STRING,
         description="Name of the nearest mapped waterbody.",
-        source="NRSC Waterbody Database",
-        source_url=_BHUVAN,
+        source="OpenStreetMap",
+        source_url=_OSM,
         lifecycle=Lifecycle.BETA,
-        ttl="180d",
+        ttl="90d",
         nullable=True,
         null_meaning="The nearest waterbody is unnamed in the source dataset.",
         hint="Pairs with nearest_waterbody_distance_m for citations.",
@@ -443,9 +455,8 @@ _NATURAL_HAZARD = (
 )
 
 # --------------------------------------------------------------------------- #
-# Infrastructure (SRS §18.7, §24.3 utilities) — OSM, POWERGRID, TRAI, TSERC   #
+# Infrastructure (SRS §18.7) — transport & access: OSM roads/railways          #
 # --------------------------------------------------------------------------- #
-_OSM = "https://www.openstreetmap.org/"
 _INFRASTRUCTURE = (
     _field(
         "nearest_highway_distance",
@@ -469,9 +480,16 @@ _INFRASTRUCTURE = (
         ttl="90d",
         hint="Relevant to freight-intensive site selection.",
     ),
+)
+
+# --------------------------------------------------------------------------- #
+# Utilities (SRS §18.7 utilities, §24.3) — power/grid/telecom: OSM/POSOCO,     #
+# TRAI, TSSPDCL/TSNPDCL, TSERC. Split out of Infrastructure for energy/siting. #
+# --------------------------------------------------------------------------- #
+_UTILITIES = (
     _field(
         "nearest_substation_distance",
-        layer=Layer.INFRASTRUCTURE,
+        layer=Layer.UTILITIES,
         datatype=DataType.FLOAT,
         unit="m",
         description="Distance to the nearest electrical substation.",
@@ -484,7 +502,7 @@ _INFRASTRUCTURE = (
     ),
     _field(
         "nearest_powerline_distance",
-        layer=Layer.INFRASTRUCTURE,
+        layer=Layer.UTILITIES,
         datatype=DataType.FLOAT,
         unit="m",
         description="Distance to the nearest transmission line.",
@@ -497,7 +515,7 @@ _INFRASTRUCTURE = (
     ),
     _field(
         "telecom_coverage",
-        layer=Layer.INFRASTRUCTURE,
+        layer=Layer.UTILITIES,
         datatype=DataType.ENUM,
         description="Best available mobile network generation.",
         source="TRAI",
@@ -510,7 +528,7 @@ _INFRASTRUCTURE = (
     ),
     _gated(
         "electricity_distribution_company",
-        layer=Layer.INFRASTRUCTURE,
+        layer=Layer.UTILITIES,
         datatype=DataType.STRING,
         description="Electricity distribution company (DISCOM) serving the area.",
         source="TSSPDCL / TSNPDCL",
@@ -520,7 +538,7 @@ _INFRASTRUCTURE = (
     ),
     _gated(
         "industrial_tariff",
-        layer=Layer.INFRASTRUCTURE,
+        layer=Layer.UTILITIES,
         datatype=DataType.FLOAT,
         unit="INR/kWh",
         description="Applicable high-tension industrial electricity tariff.",
@@ -615,17 +633,19 @@ _ADMINISTRATIVE = (
 )
 
 # --------------------------------------------------------------------------- #
-# Cadastral (SRS §18.9, §24.3) — Telangana Dharani (region-gated)             #
+# Cadastral (SRS §18.9, §24.3) — Telangana Bhu Bharati (region-gated). Bhu     #
+# Bharati replaced Dharani in 2025 (Telangana Bhu Bharati RoR Act); the access #
+# model is unchanged — a manual single-parcel viewer, no bulk export.         #
 # --------------------------------------------------------------------------- #
-_DHARANI = "https://dharani.telangana.gov.in/"
+_BHU_BHARATI = "https://bhubharati.telangana.gov.in/"
 _CADASTRAL = (
     _gated(
         "parcel_id",
         layer=Layer.CADASTRAL,
         datatype=DataType.STRING,
         description="Cadastral parcel identifier.",
-        source="Telangana Dharani",
-        source_url=_DHARANI,
+        source="Telangana Bhu Bharati",
+        source_url=_BHU_BHARATI,
         ttl="90d",
         null_meaning="Cadastral parcels are available only within Telangana.",
         hint="Pilot-region only; keys into the land-records system.",
@@ -635,8 +655,8 @@ _CADASTRAL = (
         layer=Layer.CADASTRAL,
         datatype=DataType.STRING,
         description="Revenue survey number of the containing parcel.",
-        source="Telangana Dharani",
-        source_url=_DHARANI,
+        source="Telangana Bhu Bharati",
+        source_url=_BHU_BHARATI,
         ttl="90d",
         null_meaning="Survey numbers are available only within Telangana.",
         hint="Pilot-region only; legal land-parcel reference.",
@@ -647,8 +667,8 @@ _CADASTRAL = (
         datatype=DataType.FLOAT,
         unit="m²",
         description="Area of the containing parcel.",
-        source="Telangana Dharani",
-        source_url=_DHARANI,
+        source="Telangana Bhu Bharati",
+        source_url=_BHU_BHARATI,
         ttl="90d",
         null_meaning="Cadastral parcels are available only within Telangana.",
         hint="Pilot-region only; derived from parcel geometry.",
@@ -658,8 +678,8 @@ _CADASTRAL = (
         layer=Layer.CADASTRAL,
         datatype=DataType.GEOMETRY,
         description="Boundary geometry of the containing parcel (GeoJSON).",
-        source="Telangana Dharani",
-        source_url=_DHARANI,
+        source="Telangana Bhu Bharati",
+        source_url=_BHU_BHARATI,
         ttl="90d",
         null_meaning="Cadastral parcels are available only within Telangana.",
         hint="Pilot-region only; WGS84 polygon of the parcel boundary.",
@@ -679,11 +699,82 @@ _CADASTRAL = (
         layer=Layer.CADASTRAL,
         datatype=DataType.ENUM,
         description="Ownership category of the containing parcel.",
-        source="Telangana Dharani",
-        source_url=_DHARANI,
+        source="Telangana Bhu Bharati",
+        source_url=_BHU_BHARATI,
         ttl="90d",
         null_meaning="Ownership category is available only within Telangana.",
         hint="Pilot-region only; government / private / institutional / endowment.",
+    ),
+)
+
+# --------------------------------------------------------------------------- #
+# Built Environment — Google Open Buildings (building footprints / rooftops).  #
+# Nationwide: Open Buildings v3 covers all of India. Connector wired in Phase  #
+# 4 (built_environment_connector); until then these fields surface as partial  #
+# failures, like the other not-yet-deployed connectors.                       #
+# --------------------------------------------------------------------------- #
+_OPEN_BUILDINGS = "https://sites.research.google/open-buildings/"
+_BUILT_ENVIRONMENT = (
+    _field(
+        "building_present",
+        layer=Layer.BUILT_ENVIRONMENT,
+        datatype=DataType.BOOLEAN,
+        description="Whether the point intersects a mapped building footprint.",
+        source="Google Open Buildings",
+        source_url=_OPEN_BUILDINGS,
+        ttl="365d",
+        hint="True indicates an existing structure at the coordinate.",
+    ),
+    _field(
+        "building_footprint_area_m2",
+        layer=Layer.BUILT_ENVIRONMENT,
+        datatype=DataType.FLOAT,
+        unit="m²",
+        description="Footprint area of the building containing the point.",
+        source="Google Open Buildings",
+        source_url=_OPEN_BUILDINGS,
+        lifecycle=Lifecycle.BETA,
+        ttl="365d",
+        nullable=True,
+        null_meaning="No mapped building footprint at this location.",
+        hint="Ground-floor area of the containing structure.",
+    ),
+    _field(
+        "building_count_250m",
+        layer=Layer.BUILT_ENVIRONMENT,
+        datatype=DataType.INTEGER,
+        unit="count",
+        description="Number of building footprints within 250 m.",
+        source="Google Open Buildings",
+        source_url=_OPEN_BUILDINGS,
+        ttl="365d",
+        hint="A proxy for built-up density around the point.",
+    ),
+    _field(
+        "nearest_building_distance_m",
+        layer=Layer.BUILT_ENVIRONMENT,
+        datatype=DataType.FLOAT,
+        unit="m",
+        description="Distance to the nearest building footprint.",
+        source="Google Open Buildings",
+        source_url=_OPEN_BUILDINGS,
+        lifecycle=Lifecycle.BETA,
+        ttl="365d",
+        nullable=True,
+        null_meaning="No building within the search radius for this location.",
+        hint="Larger distances indicate undeveloped surroundings.",
+    ),
+    _field(
+        "built_up_area_pct_1km",
+        layer=Layer.BUILT_ENVIRONMENT,
+        datatype=DataType.FLOAT,
+        unit="%",
+        description="Share of built-up surface within 1 km.",
+        source="Google Open Buildings (derived)",
+        source_url=_OPEN_BUILDINGS,
+        lifecycle=Lifecycle.BETA,
+        ttl="365d",
+        hint="Higher values indicate denser urban development.",
     ),
 )
 
@@ -965,6 +1056,21 @@ _PLANNED = (
         unit="ratio",
         description="Permitted floor space index for the parcel.",
     ),
+    # Built Environment
+    _planned(
+        "building_height_m",
+        layer=Layer.BUILT_ENVIRONMENT,
+        datatype=DataType.FLOAT,
+        unit="m",
+        description="Estimated mean building height at the location.",
+    ),
+    _planned(
+        "rooftop_solar_area_m2",
+        layer=Layer.BUILT_ENVIRONMENT,
+        datatype=DataType.FLOAT,
+        unit="m²",
+        description="Usable rooftop area for solar PV.",
+    ),
 )
 
 # All catalog fields, in catalog order. The catalog (app.metadata.catalog)
@@ -975,7 +1081,9 @@ FIELDS: tuple[CatalogField, ...] = (
     *_LAND_COVER,
     *_NATURAL_HAZARD,
     *_INFRASTRUCTURE,
+    *_UTILITIES,
     *_ADMINISTRATIVE,
     *_CADASTRAL,
+    *_BUILT_ENVIRONMENT,
     *_PLANNED,
 )

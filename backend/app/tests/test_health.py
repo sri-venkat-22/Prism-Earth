@@ -45,7 +45,8 @@ def test_health_returns_200_even_when_dependencies_down(
     assert body["components"]["database"]["status"] == "down"
     assert body["components"]["redis"]["status"] == "down"
     assert body["components"]["earth_engine"]["status"] == "not_configured"
-    assert body["components"]["connectors"]["status"] == "not_applicable"
+    # Phase 4: every domain layer now has a registered connector (SRS §18.10).
+    assert body["components"]["connectors"]["status"] == "ok"
 
 
 def test_health_reports_ok_when_dependencies_up(
@@ -78,6 +79,30 @@ def test_ready_returns_503_when_database_down(
     assert body["status"] == "not_ready"
     assert body["checks"]["database"]["status"] == "down"
     assert body["checks"]["redis"]["status"] == "ok"
+
+
+def test_connectors_health_lists_every_connector(client: TestClient) -> None:
+    resp = client.get("/api/v1/health/connectors")
+    assert resp.status_code == 200
+    body = resp.json()
+    # All nine domain-layer connectors are reported (SRS §18.10, §18.12).
+    assert body["count"] == 9
+    names = {c["name"] for c in body["connectors"]}
+    assert {
+        "terrain_connector",
+        "climate_connector",
+        "land_cover_connector",
+        "natural_hazard_connector",
+        "infrastructure_connector",
+        "utilities_connector",
+        "administrative_connector",
+        "cadastral_connector",
+        "built_environment_connector",
+    } == names
+    for connector in body["connectors"]:
+        assert connector["status"] == "ok"
+        assert connector["layer"]
+        assert connector["servable_fields"] >= 0
 
 
 def test_root_banner(client: TestClient) -> None:

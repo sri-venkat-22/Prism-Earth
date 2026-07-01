@@ -11,15 +11,23 @@ from enum import StrEnum
 
 
 class Layer(StrEnum):
-    """The seven domain layers (SRS §11.5). Every field belongs to exactly one."""
+    """The domain layers (SRS §11.5). Every field belongs to exactly one.
+
+    Version 1 shipped seven layers. ``BUILT_ENVIRONMENT`` (building footprints /
+    rooftops) and ``UTILITIES`` (power/grid/telecom, split out of Infrastructure)
+    were added to match the commercial siting + underwriting use cases served by
+    comparable platforms, bringing the total to nine.
+    """
 
     TERRAIN = "terrain"
     CLIMATE = "climate"
     LAND_COVER = "land_cover"
     NATURAL_HAZARD = "natural_hazard"
     INFRASTRUCTURE = "infrastructure"
+    UTILITIES = "utilities"
     ADMINISTRATIVE = "administrative"
     CADASTRAL = "cadastral"
+    BUILT_ENVIRONMENT = "built_environment"
 
 
 class Lifecycle(StrEnum):

@@ -38,6 +38,11 @@ class EarthEngineClient:
         if auto_initialize:
             initialize_earth_engine(self._settings, ee_module=self._ee)
 
+    @property
+    def ee(self) -> Any:
+        """The bound Earth Engine module (connectors build queries against it)."""
+        return self._ee
+
     # --- Image selection (SRS §19.6 dataset selection) --------------------- #
     def _image(self, dataset: GEEDataset, band: str) -> Any:
         """Resolve a dataset + band to a single Earth Engine image."""
@@ -79,10 +84,15 @@ class EarthEngineClient:
         return value
 
     # --- Terrain derivatives (SRS §18.3 slope/aspect from a DEM) ----------- #
-    def _reduce_image(
+    def reduce_point(
         self, image: Any, band: str, lat: float, lng: float, *, scale: float
     ) -> float | None:
-        """Mean-reduce one band of an arbitrary image at a point (SRS §19.6)."""
+        """Mean-reduce one band of an arbitrary image at a point (SRS §19.6).
+
+        Public so the Phase 4 connectors (Climate/Land-Cover/Hazard) can sample
+        images they build themselves — e.g. a temporally reduced collection or a
+        derived index — against :attr:`ee`, mirroring the Terrain connector.
+        """
         point = self._ee.Geometry.Point([lng, lat])  # WGS84 (lng, lat)
         reduced = image.reduceRegion(
             reducer=self._ee.Reducer.mean(),
@@ -92,6 +102,51 @@ class EarthEngineClient:
         )
         value = reduced.get(band).getInfo()
         return None if value is None else float(value)
+
+    # Backwards-compatible internal alias (kept for the terrain sampler below).
+    _reduce_image = reduce_point
+
+    def collection_mean(
+        self, dataset: GEEDataset, band: str, lat: float, lng: float, *, scale: float | None = None
+    ) -> float | None:
+        """Temporally mean-reduce a collection band, then sample at the point.
+
+        Unlike :meth:`point_value` (which mosaics — the *latest* pixel), this
+        averages every image in the collection first, giving the long-term
+        climatological mean the Climate/Land-Cover connectors need (SRS §18.4).
+        """
+        image = self._ee.ImageCollection(dataset.ee_id).select(band).mean()
+        return self.reduce_point(image, band, lat, lng, scale=scale or 30)
+
+    def collection_mean_multi(
+        self,
+        dataset: GEEDataset,
+        bands: list[str],
+        lat: float,
+        lng: float,
+        *,
+        scale: float | None = None,
+    ) -> dict[str, float | None]:
+        """Temporally mean-reduce *every* band in one round trip (SRS §19.9).
+
+        Earth Engine calls are network round trips; a connector needing several
+        bands from the same collection (e.g. Climate's rainfall/temperature/
+        evapotranspiration) should ask for them together here rather than call
+        :meth:`collection_mean` once per band, which multiplies request count for
+        no benefit — the server already computes a multi-band ``reduceRegion`` in
+        a single pass.
+        """
+        image = self._ee.ImageCollection(dataset.ee_id).select(bands).mean()
+        point = self._ee.Geometry.Point([lng, lat])  # WGS84 (lng, lat)
+        reduced = image.reduceRegion(
+            reducer=self._ee.Reducer.mean(),
+            geometry=point,
+            scale=scale or 30,
+            maxPixels=1_000_000_000,
+        ).getInfo()
+        return {
+            band: (None if reduced.get(band) is None else float(reduced[band])) for band in bands
+        }
 
     def sample_terrain(
         self, dataset: GEEDataset, lat: float, lng: float, *, scale: float = 30
