@@ -37,11 +37,15 @@ class AppError(Exception):
         code: str | None = None,
         status_code: int | None = None,
         details: str | None = None,
+        headers: dict[str, str] | None = None,
     ) -> None:
         self.message = message or self.message
         self.code = code or self.code
         self.status_code = status_code or self.status_code
         self.details = details
+        # Extra response headers (e.g. ``Retry-After`` / ``WWW-Authenticate``)
+        # emitted alongside the error envelope.
+        self.headers = headers or {}
         super().__init__(self.message)
 
 
@@ -61,6 +65,26 @@ class AuthenticationError(AppError):
     code = "AUTHENTICATION_ERROR"
     status_code = 401
     message = "Authentication required."
+
+
+class AuthorizationError(AppError):
+    """The caller is authenticated but lacks the required scope (SRS §13.20)."""
+
+    code = "AUTHORIZATION_ERROR"
+    status_code = 403
+    message = "Insufficient scope for this resource."
+
+
+class RateLimitError(AppError):
+    """A per-token request budget was exceeded (SRS §13.19)."""
+
+    code = "RATE_LIMIT_EXCEEDED"
+    status_code = 429
+    message = "Rate limit exceeded."
+
+    def __init__(self, message: str | None = None, *, retry_after: int | None = None) -> None:
+        headers = {"Retry-After": str(retry_after)} if retry_after is not None else None
+        super().__init__(message, headers=headers)
 
 
 class DatasetError(AppError):
@@ -89,7 +113,13 @@ def _correlation_id(request: Request) -> str:
 
 
 def _render(
-    *, status_code: int, code: str, message: str, correlation_id: str, details: str | None
+    *,
+    status_code: int,
+    code: str,
+    message: str,
+    correlation_id: str,
+    details: str | None,
+    headers: dict[str, str] | None = None,
 ) -> JSONResponse:
     payload = ErrorResponse(
         error=ErrorModel(
@@ -100,7 +130,7 @@ def _render(
             timestamp=utcnow_iso(),
         )
     )
-    return JSONResponse(status_code=status_code, content=payload.model_dump())
+    return JSONResponse(status_code=status_code, content=payload.model_dump(), headers=headers)
 
 
 # --------------------------------------------------------------------------- #
@@ -113,6 +143,7 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
         message=exc.message,
         correlation_id=_correlation_id(request),
         details=exc.details,
+        headers=exc.headers or None,
     )
 
 

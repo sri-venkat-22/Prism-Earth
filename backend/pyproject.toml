@@ -22,6 +22,10 @@ dependencies = [
     # Planner and Synthesizer. Imported lazily, so the deterministic Fetch spine
     # never needs it; the configured model is chosen via PRISM_LLM_MODEL.
     "litellm>=1.55,<2.0",
+    # MCP server (SRS §9, §34): the Model Context Protocol SDK. Imported lazily
+    # (only when running `python -m app.mcp`), so the REST app and the gate never
+    # require it. The MCP server is a thin client over the REST API (§34.2).
+    "mcp>=1.2,<2.0",
 ]
 
 [dependency-groups]

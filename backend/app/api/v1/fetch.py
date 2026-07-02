@@ -21,6 +21,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth import Principal, require_auth
 from app.core.database import get_session
 from app.fetchers import FetchOrchestrator, build_fetch_orchestrator
 from app.schemas.fetch import FetchRequest, FetchResponse
@@ -45,8 +46,14 @@ async def fetch(
     payload: FetchRequest,
     request: Request,
     orchestrator: Annotated[FetchOrchestrator, Depends(get_fetch_orchestrator)],
+    _principal: Annotated[Principal, Depends(require_auth("fetch"))],
 ) -> FetchResponse:
-    """Retrieve fields (or an expanded preset) at a coordinate (SRS §13.9)."""
+    """Retrieve fields (or an expanded preset) at a coordinate (SRS §13.9).
+
+    Requires the ``fetch`` scope when authentication is enabled (SRS §13.20);
+    when disabled the guard resolves to an anonymous principal and the contract
+    is unchanged.
+    """
     correlation_id = getattr(request.state, "correlation_id", "")
     return await orchestrator.fetch(
         lat=payload.lat,

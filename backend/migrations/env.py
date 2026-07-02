@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlalchemy.pool import NullPool
 
 from app import models  # noqa: F401  (registers all entities on Base.metadata)
+from app.auth import models as auth_models  # noqa: F401  (auth tables, SRS §13.20)
 from app.core.config import get_settings
 from app.models.base import Base
 

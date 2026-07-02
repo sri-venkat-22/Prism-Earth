@@ -24,6 +24,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ask import AskPipeline, build_ask_pipeline
+from app.auth import Principal, require_auth
 from app.core.database import get_session
 from app.schemas.ask import AskRequest, AskResponse
 
@@ -47,8 +48,12 @@ async def ask(
     payload: AskRequest,
     request: Request,
     pipeline: Annotated[AskPipeline, Depends(get_ask_pipeline)],
+    _principal: Annotated[Principal, Depends(require_auth("ask"))],
 ) -> AskResponse:
-    """Plan → fetch → synthesize a cited answer for a question (SRS §13.13)."""
+    """Plan → fetch → synthesize a cited answer for a question (SRS §13.13).
+
+    Requires the ``ask`` scope when authentication is enabled (SRS §13.20).
+    """
     correlation_id = getattr(request.state, "correlation_id", "")
     return await pipeline.ask(
         lat=payload.lat,

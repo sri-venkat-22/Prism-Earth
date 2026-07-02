@@ -87,6 +87,40 @@ class Settings(BaseSettings):
     llm_timeout: float = 30.0
     llm_api_key: str | None = None
 
+    # --- Authentication (SRS §13.20, §13.19) ----------------------------
+    # V1.1 separates public discovery from authenticated data access. Auth is a
+    # gateway concern applied *without changing endpoint contracts* (§13.20), so
+    # it is a cross-cutting toggle: metadata APIs stay public; POST /fetch and
+    # POST /ask require a bearer token only when ``auth_enabled`` is true. The
+    # default is off so the deterministic gate and the browser UX keep working
+    # unchanged; production deployments enable it.
+    auth_enabled: bool = False
+    # Bootstrap credential guarding token-management endpoints (dashboard-issued
+    # tokens, device approval). Without it those endpoints report 503 rather than
+    # allowing anonymous token minting. Never expose to clients.
+    auth_admin_token: str | None = None
+    # Default per-token request budget (§13.19). Overridable per token.
+    auth_default_rate_limit_per_minute: int = 120
+    # Default lifetime for issued tokens; ``None`` means non-expiring.
+    auth_token_ttl_days: int | None = None
+    # Public base URL used as the OAuth issuer / resource identifier (§13.20).
+    auth_issuer_url: str = "http://localhost:8000"
+    # Back ephemeral state (auth/device codes, rate-limit counters) with Redis
+    # (§23) instead of the in-process store. The in-process store is correct for
+    # single-instance dev; Redis is required for horizontal scaling.
+    auth_use_redis: bool = False
+
+    # --- MCP server (SRS §34, §9) ---------------------------------------
+    # The MCP server is a thin client over the REST API (§34.2 workflow, §11.2
+    # API-first). These configure how it reaches the platform and how it is
+    # exposed to AI clients (stdio for Claude Desktop / Cursor, HTTP for remote).
+    mcp_api_base_url: str = "http://localhost:8000/api/v1"
+    mcp_api_token: str | None = None
+    mcp_transport: Literal["stdio", "streamable-http"] = "stdio"
+    mcp_http_host: str = "127.0.0.1"
+    mcp_http_port: int = 8765
+    mcp_request_timeout: float = 60.0
+
     @property
     def database_url(self) -> str:
         """Async SQLAlchemy DSN (asyncpg driver)."""

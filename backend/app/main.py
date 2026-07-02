@@ -14,14 +14,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_v1_router
+from app.api.well_known import router as well_known_router
+from app.auth.stores import InMemoryEphemeralStore, RedisEphemeralStore
 from app.config.loader import ConfigError, load_all_configs
 from app.core.config import Settings, get_settings
 from app.core.database import dispose_engine, init_engine
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
-from app.core.redis import close_redis, init_redis
+from app.core.redis import close_redis, get_redis, init_redis
 from app.metadata import get_catalog, get_state_registry, validate_catalog
 from app.middleware.correlation import CorrelationIdMiddleware
+from app.middleware.security import SecurityHeadersMiddleware
 
 logger = get_logger(__name__)
 
@@ -82,8 +85,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = settings
 
+    # Ephemeral auth state (auth/device codes, rate-limit counters, SRS §13.19/§23).
+    # Redis is the multi-instance backend; the in-process store is correct for
+    # single-instance dev and hermetic tests. Built here so it is shared across
+    # requests within this app instance.
+    if settings.auth_use_redis:
+        app.state.ephemeral_store = RedisEphemeralStore(get_redis())
+    else:
+        app.state.ephemeral_store = InMemoryEphemeralStore()
+
     # Middleware (outermost first).
     app.add_middleware(CorrelationIdMiddleware)
+    app.add_middleware(SecurityHeadersMiddleware, hsts=settings.is_production)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
@@ -94,6 +107,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     register_exception_handlers(app)
     app.include_router(api_v1_router, prefix=settings.api_v1_prefix)
+    # OAuth discovery documents live at the origin root (SRS §13.20, §34).
+    app.include_router(well_known_router)
 
     @app.get("/", tags=["meta"], summary="Service banner")
     async def root() -> dict[str, str]:
