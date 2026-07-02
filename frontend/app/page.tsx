@@ -1,42 +1,317 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+"use client";
 
-const API_DOCS_URL = process.env.NEXT_PUBLIC_API_DOCS_URL ?? "http://localhost:8000/docs";
-const API_HEALTH_URL =
-  process.env.NEXT_PUBLIC_API_HEALTH_URL ?? "http://localhost:8000/api/v1/health";
+import Link from "next/link";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 
-export default function Home() {
+import { Reveal } from "@/components/reveal";
+import { SectionHeading } from "@/components/section-heading";
+import { TerminalLine, TerminalWindow } from "@/components/terminal-window";
+import { layerMeta } from "@/lib/domain";
+import { useConnectorsHealth, useFields, useLayers, usePresets } from "@/hooks/useMeta";
+
+const USE_CASE_LIMIT = 9;
+
+const DOCS_URL = process.env.NEXT_PUBLIC_API_DOCS_URL ?? "http://localhost:8000/docs";
+
+const ENDPOINTS = [
+  {
+    method: "POST",
+    path: "/ask",
+    title: "Natural-language ask",
+    desc: "A planner selects catalog fields, the fetch engine retrieves them deterministically, and the synthesizer answers — with citations, provenance, and a full execution trace.",
+  },
+  {
+    method: "POST",
+    path: "/fetch",
+    title: "Deterministic fetch",
+    desc: "Raw field values for any coordinate. No model in the loop — just sourced values, units, confidence, and the dataset each one came from.",
+  },
+  {
+    method: "GET",
+    path: "/meta/*",
+    title: "Self-describing catalog",
+    desc: "Every layer, field, preset, and region is discoverable at runtime. The platform never invents a field it cannot source.",
+  },
+];
+
+const FAQ = [
+  {
+    q: "What does “ground truth” mean here?",
+    a: "Every value Prism Earth returns is fetched from a named, versioned dataset and carries its own provenance — source, license, retrieval time, and confidence. The synthesizer only states values that were actually fetched and explicitly flags anything unavailable. It never fabricates data.",
+  },
+  {
+    q: "Which regions are supported?",
+    a: "The platform is built for all of India, with Telangana as the fully-enabled pilot region. Nationwide fields resolve everywhere; region-gated fields resolve where the underlying datasets are enabled. Coverage is always reported per field.",
+  },
+  {
+    q: "How is an answer produced?",
+    a: "Three deterministic stages — plan, fetch, synthesize. The planner can only choose fields that exist in the catalog; the fetch engine calls connectors in parallel; the synthesizer composes an answer strictly from the fetched values. The entire trace is returned so you can audit exactly what ran.",
+  },
+  {
+    q: "Is it built for AI agents?",
+    a: "Yes. The REST surface is designed to be a reliable tool for physical-world agents: structured, cited, and honest about gaps — so an agent can reason over geospatial facts without guessing.",
+  },
+];
+
+export default function HomePage() {
+  const layers = useLayers();
+  const presets = usePresets();
+  const fields = useFields();
+  const connectors = useConnectorsHealth();
+
+  const stats = [
+    { label: "Domain layers", value: layers.data?.count },
+    { label: "Query presets", value: presets.data?.count },
+    { label: "Catalog fields", value: fields.data?.count },
+    { label: "Live connectors", value: connectors.data?.count },
+  ];
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-8">
-      <Card className="w-full max-w-xl">
-        <CardHeader>
-          <p className="text-sm font-medium text-muted-foreground">Phase 0 · Scaffold</p>
-          <CardTitle>Prism Earth</CardTitle>
-          <CardDescription>
-            Deterministic, citation-backed geospatial intelligence for India. This is the
-            placeholder shell — pages and components arrive in Phase 6.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-3">
-          <a
-            href={API_DOCS_URL}
-            className={cn(buttonVariants({ variant: "default" }))}
-            target="_blank"
-            rel="noreferrer"
+    <div className="space-y-24 sm:space-y-32">
+      {/* Hero */}
+      <section className="grid items-center gap-12 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
+        <div className="animate-fade-up">
+          <p className="mono-eyebrow mb-5">Geospatial ground truth · API</p>
+          <h1 className="font-display text-[clamp(38px,6vw,68px)] font-semibold leading-[1.02] tracking-[-0.02em]">
+            Geospatial ground truth for any Indian coordinate.
+          </h1>
+          <p className="mt-6 max-w-xl text-[17px] leading-relaxed text-muted-foreground">
+            Prism Earth gives AI agents and analysts sourced, citation-backed data for any point —
+            terrain, climate, land cover, hazard, infrastructure and more. Every value is traceable
+            to a dataset. Nothing is ever invented.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <Link
+              href="/ask"
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-transform duration-200 ease-expo hover:-translate-y-0.5"
+            >
+              Ask a question <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 rounded-full border border-input bg-background px-5 py-2.5 text-sm font-medium transition-colors hover:bg-accent"
+            >
+              Open the map
+            </Link>
+            <a
+              href={DOCS_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 px-2 py-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Read the docs <ArrowUpRight className="h-3.5 w-3.5" />
+            </a>
+          </div>
+        </div>
+
+        {/* /ask terminal demo */}
+        <div className="animate-fade-up [animation-delay:120ms]">
+          <TerminalWindow title="prism-earth · POST /api/v1/ask">
+            <div className="space-y-2.5">
+              <TerminalLine prefix="$" tone="muted">
+                curl -s prism.earth/api/v1/ask -d &apos;{"{"}
+              </TerminalLine>
+              <TerminalLine tone="muted">{'  "lat": 17.385, "lng": 78.486,'}</TerminalLine>
+              <TerminalLine tone="muted">
+                {'  "question": "Is this site suitable for a solar farm?" }\''}
+              </TerminalLine>
+              <div className="my-2 border-t border-border" />
+              <TerminalLine tone="comment">
+                # planner → 3 layers · fetch → 7 fields · synthesize
+              </TerminalLine>
+              <TerminalLine tone="success">
+                Terrain here is gently sloped (mean slope 2.4°) with high annual solar irradiance{" "}
+                <span className="rounded border border-brand/40 bg-brand/10 px-1 text-brand">
+                  [CIT-001]
+                </span>
+                . Land cover is predominantly cropland{" "}
+                <span className="rounded border border-brand/40 bg-brand/10 px-1 text-brand">
+                  [CIT-002]
+                </span>
+                ; flood hazard is low.
+              </TerminalLine>
+              <div className="my-2 border-t border-border" />
+              <TerminalLine tone="comment">
+                # CIT-001 NASA SRTM · CIT-002 ESA WorldCover
+              </TerminalLine>
+            </div>
+          </TerminalWindow>
+          <p className="mt-3 text-center text-[11px] text-faint">
+            Illustrative response · every claim carries a citation
+          </p>
+        </div>
+      </section>
+
+      {/* Live stats */}
+      <section>
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-4">
+          {stats.map((s) => (
+            <div key={s.label} className="bg-card px-5 py-6">
+              <p className="font-display text-3xl font-semibold tabular-nums">{s.value ?? "—"}</p>
+              <p className="mono-eyebrow mt-2">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* What Prism Earth provides */}
+      <section>
+        <Reveal>
+          <SectionHeading
+            eyebrow="What Prism Earth provides"
+            title="Nine domain layers, one honest contract."
+            description="Each layer is a set of sourced fields with its own provenance. Toggle them on the map, or let Ask pick the right ones for your question."
+          />
+        </Reveal>
+        <div className="mt-10 grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+          {(layers.data?.layers ?? []).map((layer, i) => {
+            const meta = layerMeta(layer.id);
+            const Icon = meta.icon;
+            return (
+              <Reveal key={layer.id} delay={(i % 3) * 70} className="bg-card">
+                <div className="group h-full p-6 transition-colors hover:bg-secondary">
+                  <span
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-md"
+                    style={{
+                      background: `hsl(${meta.accent} / 0.12)`,
+                      color: `hsl(${meta.accent})`,
+                    }}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <h3 className="mt-4 text-[17px] font-semibold">{layer.name}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                    {layer.purpose}
+                  </p>
+                  <p className="mono-eyebrow mt-4">{layer.field_count} fields</p>
+                </div>
+              </Reveal>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Use cases */}
+      <section id="use-cases" className="scroll-mt-24">
+        <Reveal>
+          <SectionHeading
+            eyebrow="Use cases"
+            title="Ready-made presets for real questions."
+            description={`${presets.data?.count ?? "18"} presets bundle the right fields for a job — siting, risk, and lookup queries you can run in one call.`}
+          />
+        </Reveal>
+        <div className="mt-10 grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+          {(presets.data?.presets ?? []).slice(0, USE_CASE_LIMIT).map((preset, i) => {
+            const meta = layerMeta(preset.layers[0] ?? "");
+            const Icon = meta.icon;
+            return (
+              <Reveal key={preset.id} delay={(i % 3) * 70} className="bg-card">
+                <Link
+                  href={`/fetch?preset=${preset.id}`}
+                  className="group flex h-full flex-col p-6 transition-colors hover:bg-secondary"
+                >
+                  <span
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-md"
+                    style={{
+                      background: `hsl(${meta.accent} / 0.12)`,
+                      color: `hsl(${meta.accent})`,
+                    }}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <h3 className="mt-4 text-[17px] font-semibold">{preset.name}</h3>
+                  <p className="mt-1.5 flex-1 text-sm leading-relaxed text-muted-foreground">
+                    {preset.description}
+                  </p>
+                  <span className="mono-eyebrow mt-4 inline-flex items-center gap-1 text-brand">
+                    Try this preset
+                    <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </Link>
+              </Reveal>
+            );
+          })}
+        </div>
+        {(presets.data?.count ?? 0) > USE_CASE_LIMIT && (
+          <p className="mt-4 text-center text-[13px] text-muted-foreground">
+            +{(presets.data?.count ?? 0) - USE_CASE_LIMIT} more presets available via{" "}
+            <span className="font-mono">GET /meta/presets</span>
+          </p>
+        )}
+      </section>
+
+      {/* For AI agents */}
+      <section>
+        <Reveal>
+          <SectionHeading
+            eyebrow="For AI agents"
+            title="A tool your agent can trust."
+            description="Three endpoints, all self-describing and audit-ready. Structured in, sourced out — and honest about what it doesn't know."
+          />
+        </Reveal>
+        <div className="mt-10 grid gap-4 lg:grid-cols-3">
+          {ENDPOINTS.map((e, i) => (
+            <Reveal key={e.path} delay={i * 70}>
+              <div className="flex h-full flex-col rounded-lg border border-border bg-card p-6">
+                <div className="flex items-center gap-2">
+                  <span className="rounded border border-border bg-secondary px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase text-muted-foreground">
+                    {e.method}
+                  </span>
+                  <span className="font-mono text-sm font-medium">{e.path}</span>
+                </div>
+                <h3 className="mt-4 text-[17px] font-semibold">{e.title}</h3>
+                <p className="mt-1.5 flex-1 text-sm leading-relaxed text-muted-foreground">
+                  {e.desc}
+                </p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="scroll-mt-24">
+        <Reveal>
+          <SectionHeading eyebrow="FAQ" title="The short version." />
+        </Reveal>
+        <div className="mx-auto mt-10 max-w-3xl divide-y divide-border border-y border-border">
+          {FAQ.map((item) => (
+            <details key={item.q} className="group py-5">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[17px] font-medium">
+                {item.q}
+                <span className="text-muted-foreground transition-transform duration-200 ease-expo group-open:rotate-45">
+                  <ArrowRight className="h-4 w-4 rotate-45" />
+                </span>
+              </summary>
+              <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
+                {item.a}
+              </p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="rounded-xl border border-border bg-card px-6 py-14 text-center sm:py-20">
+        <p className="mono-eyebrow mb-4">Start with a coordinate</p>
+        <h2 className="mx-auto max-w-2xl font-display text-[clamp(26px,4vw,44px)] font-semibold leading-[1.05]">
+          See what the platform knows — and what it doesn&apos;t.
+        </h2>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link
+            href="/ask"
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-transform duration-200 ease-expo hover:-translate-y-0.5"
           >
-            API Docs
-          </a>
-          <a
-            href={API_HEALTH_URL}
-            className={cn(buttonVariants({ variant: "outline" }))}
-            target="_blank"
-            rel="noreferrer"
+            Ask a question <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 rounded-full border border-input bg-background px-5 py-2.5 text-sm font-medium transition-colors hover:bg-accent"
           >
-            Backend Health
-          </a>
-        </CardContent>
-      </Card>
-    </main>
+            Explore the map
+          </Link>
+        </div>
+      </section>
+    </div>
   );
 }

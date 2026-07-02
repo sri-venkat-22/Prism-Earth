@@ -2,46 +2,71 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ========================================================================== */
+/*  Prism Earth design tokens                                                  */
+/*  Warm, editorial, light — modeled on mireye.com. Single theme (no dark).    */
+/*  Palette: cream #F8F6EE · ink #16140F · warm grays · muted jewel accents.    */
+/* ========================================================================== */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-  }
+    /* Core surfaces */
+    --background: 48 42% 95%; /* #F8F6EE cream */
+    --foreground: 43 19% 7%; /* #16140F ink */
+    --card: 60 23% 97%; /* #FAFAF7 */
+    --card-foreground: 43 19% 7%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 43 19% 7%;
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    /* Interactive: dark editorial buttons on cream */
+    --primary: 43 19% 7%;
+    --primary-foreground: 48 42% 96%;
+    --secondary: 51 19% 93%; /* #F0EFE9 */
+    --secondary-foreground: 43 19% 7%;
+    --muted: 51 19% 93%;
+    --muted-foreground: 39 8% 33%; /* #5A554C */
+    --accent: 46 27% 90%; /* #EDEAE0 warm hover */
+    --accent-foreground: 43 19% 7%;
+    --destructive: 11 56% 42%; /* rust */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 46 27% 90%; /* #EDEAE0 */
+    --input: 44 26% 86%; /* #E4DFD1 */
+    --ring: 212 69% 39%; /* #1F5FA6 blue */
+    --radius: 0.625rem;
+
+    /* Brand + semantic accents (muted jewel tones on cream) */
+    --brand: 212 69% 39%; /* blue */
+    --brand-foreground: 0 0% 100%;
+    --brand-2: 11 56% 42%; /* terracotta */
+    --brand-3: 127 18% 35%; /* forest */
+    --faint: 39 9% 55%; /* #968F82 */
+    --success: 148 34% 37%;
+    --warning: 36 62% 43%;
+    --danger: 11 56% 42%;
+    --info: 209 41% 41%;
+
+    /* Layer accents (SRS §11.5) — warm jewel set */
+    --layer-terrain: 37 46% 42%; /* ochre */
+    --layer-climate: 209 41% 41%; /* steel blue */
+    --layer-land: 127 18% 35%; /* moss */
+    --layer-hazard: 11 56% 42%; /* rust */
+    --layer-infra: 237 30% 42%; /* indigo */
+    --layer-utilities: 36 62% 43%; /* amber */
+    --layer-admin: 172 39% 30%; /* slate teal */
+    --layer-cadastral: 57 37% 32%; /* olive */
+    --layer-built: 329 30% 42%; /* plum */
+
+    /* Radii scale */
+    --radius-sm: 0.375rem;
+    --radius-md: 0.625rem;
+    --radius-lg: 0.875rem;
+    --radius-chip: 999px;
+
+    /* Motion */
+    --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+    --grid-line: 43 19% 7% / 0.035;
   }
 }
 
@@ -49,7 +74,244 @@
   * {
     @apply border-border;
   }
-  body {
-    @apply bg-background text-foreground;
+  html {
+    -webkit-text-size-adjust: 100%;
   }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Display headings lean on Sora with tight tracking (mireye) */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  ::selection {
+    background: hsl(var(--brand) / 0.16);
+    color: hsl(var(--foreground));
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 9999px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+/* ========================================================================== */
+/*  Component classes                                                          */
+/* ========================================================================== */
+@layer components {
+  /* Uppercase tracked mono label — mireye's signature eyebrow */
+  .mono-eyebrow {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 0.6875rem; /* 11px */
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Elevated warm surface (replaces the old dark "glass") */
+  .glass {
+    background: hsl(var(--card) / 0.85);
+    backdrop-filter: blur(10px) saturate(1.1);
+    -webkit-backdrop-filter: blur(10px) saturate(1.1);
+    border: 1px solid hsl(var(--border));
+  }
+
+  /* Kept as solid fallbacks so any lingering references degrade gracefully */
+  .text-gradient {
+    color: hsl(var(--brand));
+  }
+  .brand-gradient {
+    background-color: hsl(var(--brand));
+  }
+
+  /* macOS terminal window chrome (mireye motif for /ask + code surfaces) */
+  .terminal {
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius-lg);
+    background: #fbfbf8;
+    box-shadow:
+      0 1px 0 hsl(var(--foreground) / 0.02),
+      0 24px 60px -32px hsl(var(--foreground) / 0.28);
+    overflow: hidden;
+  }
+  .terminal-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.9rem;
+    border-bottom: 1px solid hsl(var(--border));
+    background: hsl(var(--secondary));
+  }
+  .win-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 999px;
+  }
+
+  /* Base badge */
+  .pe-badge {
+    @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium leading-none;
+  }
+  .badge-muted {
+    color: hsl(var(--muted-foreground));
+    background: hsl(var(--muted) / 0.7);
+    border-color: hsl(var(--border));
+  }
+  .badge-confidence-high,
+  .badge-lifecycle-stable,
+  .badge-avail-nationwide {
+    color: hsl(var(--success));
+    background: hsl(var(--success) / 0.1);
+    border-color: hsl(var(--success) / 0.35);
+  }
+  .badge-confidence-medium,
+  .badge-avail-gated {
+    color: hsl(var(--warning));
+    background: hsl(var(--warning) / 0.1);
+    border-color: hsl(var(--warning) / 0.35);
+  }
+  .badge-confidence-low {
+    color: hsl(var(--danger));
+    background: hsl(var(--danger) / 0.1);
+    border-color: hsl(var(--danger) / 0.35);
+  }
+  .badge-lifecycle-beta {
+    color: hsl(var(--info));
+    background: hsl(var(--info) / 0.1);
+    border-color: hsl(var(--info) / 0.35);
+  }
+  .badge-lifecycle-planned,
+  .badge-avail-planned {
+    color: hsl(var(--muted-foreground));
+    background: hsl(var(--muted) / 0.6);
+    border-color: hsl(var(--border));
+  }
+
+  /* Layer accent chip: colour driven by --layer-accent set inline */
+  .layer-chip {
+    color: hsl(var(--layer-accent, var(--brand)));
+    background: hsl(var(--layer-accent, var(--brand)) / 0.1);
+    border-color: hsl(var(--layer-accent, var(--brand)) / 0.3);
+  }
+
+  /* Interactive tile hover — warm, no neon */
+  .lift {
+    transition:
+      transform 0.28s var(--ease-out-expo),
+      box-shadow 0.28s var(--ease-out-expo),
+      border-color 0.16s ease;
+  }
+  .lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 40px -24px hsl(var(--foreground) / 0.3);
+    border-color: hsl(var(--foreground) / 0.22);
+  }
+
+  .hairline {
+    border-color: hsl(var(--border));
+  }
+}
+
+/* ========================================================================== */
+/*  Utilities                                                                  */
+/* ========================================================================== */
+@layer utilities {
+  /* Faint dotted paper texture for large empty surfaces */
+  .paper-grid {
+    background-image: radial-gradient(hsl(var(--grid-line)) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  /* Scroll reveal — start state; Reveal component toggles [data-shown] */
+  .reveal {
+    opacity: 0;
+    transform: translateY(14px);
+    transition:
+      opacity 0.64s var(--ease-out-expo),
+      transform 0.64s var(--ease-out-expo);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+  .reveal[data-shown="true"] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted) / 0.5) 25%,
+      hsl(var(--muted) / 0.85) 37%,
+      hsl(var(--muted) / 0.5) 63%
+    );
+    background-size: 400% 100%;
+    animation: shimmer 1.4s ease infinite;
+  }
+  @keyframes shimmer {
+    0% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0 50%;
+    }
+  }
+
+  .pulse-ring {
+    animation: pulse-ring 1.8s var(--ease-out-expo) infinite;
+  }
+  @keyframes pulse-ring {
+    0% {
+      box-shadow: 0 0 0 0 hsl(var(--brand) / 0.35);
+    }
+    70% {
+      box-shadow: 0 0 0 8px hsl(var(--brand) / 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 hsl(var(--brand) / 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+    .shimmer,
+    .pulse-ring {
+      animation: none;
+    }
+  }
+}
+
+/* MapLibre popup/control theming to match the warm palette */
+.maplibregl-map {
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+.maplibregl-ctrl-group {
+  border-radius: var(--radius-md) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  box-shadow: 0 6px 20px -12px hsl(var(--foreground) / 0.3) !important;
+}
+.maplibregl-ctrl-group button {
+  background: hsl(var(--card)) !important;
 }
