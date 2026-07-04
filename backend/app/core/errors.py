@@ -87,6 +87,14 @@ class RateLimitError(AppError):
         super().__init__(message, headers=headers)
 
 
+class PayloadTooLargeError(AppError):
+    """The request body exceeded the configured size limit (SRS §29.1)."""
+
+    code = "PAYLOAD_TOO_LARGE"
+    status_code = 413
+    message = "Request body too large."
+
+
 class DatasetError(AppError):
     code = "DATASET_ERROR"
     status_code = 502

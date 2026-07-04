@@ -1,0 +1,4 @@
+# Documentation site toolchain (SRS §36.4). Pinned for reproducible builds in CI.
+mkdocs>=1.6,<2.0
+mkdocs-material>=9.5,<10.0
+pymdown-extensions>=10.0

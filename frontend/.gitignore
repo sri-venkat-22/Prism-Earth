@@ -7,3 +7,9 @@ next-env.d.ts.bak
 .env*.local
 .DS_Store
 npm-debug.log*
+
+# Test + coverage artifacts
+/coverage/
+/playwright-report/
+/test-results/
+/.playwright/

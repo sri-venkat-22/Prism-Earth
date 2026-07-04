@@ -41,10 +41,14 @@ class FetchRequest(BaseModel):
         }
     )
 
-    lat: float = Field(..., description="Latitude (WGS84)")
-    lng: float = Field(..., description="Longitude (WGS84)")
-    fields: list[str] | None = Field(None, description="Explicit catalog field names")
-    preset: str | None = Field(None, description="A catalog preset id to expand (SRS §11.7)")
+    lat: float = Field(..., ge=-90.0, le=90.0, description="Latitude (WGS84)")
+    lng: float = Field(..., ge=-180.0, le=180.0, description="Longitude (WGS84)")
+    fields: list[str] | None = Field(
+        None, max_length=100, description="Explicit catalog field names"
+    )
+    preset: str | None = Field(
+        None, max_length=100, description="A catalog preset id to expand (SRS §11.7)"
+    )
 
     @model_validator(mode="after")
     def _exactly_one_selector(self) -> FetchRequest:

@@ -32,9 +32,14 @@ class AskRequest(BaseModel):
         }
     )
 
-    lat: float = Field(..., description="Latitude (WGS84)")
-    lng: float = Field(..., description="Longitude (WGS84)")
-    question: str = Field(..., description="Natural-language question about the location")
+    lat: float = Field(..., ge=-90.0, le=90.0, description="Latitude (WGS84)")
+    lng: float = Field(..., ge=-180.0, le=180.0, description="Longitude (WGS84)")
+    question: str = Field(
+        ...,
+        min_length=1,
+        max_length=2000,
+        description="Natural-language question about the location",
+    )
 
     @field_validator("question")
     @classmethod

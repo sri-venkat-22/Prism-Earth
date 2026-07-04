@@ -4,9 +4,12 @@ Deterministic, citation-backed geospatial intelligence for India. Prism Earth
 turns a coordinate into provenance-tracked, source-cited geospatial data — and,
 via an AI layer, into natural-language answers that never fabricate values.
 
-> **Status: Phase 0 — Scaffold & Foundations.** A runnable empty platform.
-> No business logic yet. See `Prism_Earth_Phased_Build_Plan.md` for the roadmap
-> and `Prism_Earth_SRS_v1.0.docx` for the full specification.
+> **Status: Version 1 — production-ready (SRS §36).** The full platform is built
+> and hardened: deterministic Fetch spine, AI `/ask` pipeline, MCP server, browser
+> UX, comprehensive tests (pytest · Vitest · Playwright), observability
+> (Prometheus · OpenTelemetry · Loki · Grafana), security + rate limiting, CI/CD,
+> and a MkDocs documentation site. See the [documentation](docs/index.md) and
+> `Prism_Earth_SRS_v1.0.docx` for the full specification.
 
 ## Quick start
 
@@ -20,10 +23,17 @@ This boots four services:
 
 | Service  | URL                                   | Notes                          |
 | -------- | ------------------------------------- | ------------------------------ |
-| Backend  | http://localhost:8000                 | FastAPI; docs at `/docs`       |
-| Frontend | http://localhost:3000                 | Next.js placeholder page       |
+| Backend  | http://localhost:8000                 | FastAPI; docs `/docs`, metrics `/metrics` |
+| Frontend | http://localhost:3000                 | Next.js browser UX (Ask · Dashboard · Fetch · Explore) |
 | Postgres | localhost:5432                        | PostGIS 16-3.4                 |
 | Redis    | localhost:6379                        | —                              |
+
+For production (Nginx + multi-worker backend + monitoring), see the
+[Deployment Guide](docs/deployment.md):
+
+```bash
+docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml up -d
+```
 
 Verify the backend:
 
@@ -41,11 +51,11 @@ prism-earth/
 ├── frontend/     Next.js + TS + Tailwind + ShadCN shell
 ├── datasets/     dataset isolation (telangana, raster, vector, metadata)
 ├── configs/      india.yaml, telangana.yaml, datasets.yaml (config-driven)
-├── docs/         documentation (MkDocs site in Phase 8)
-├── deployment/   deployment manifests (Phase 8)
-├── docker/       shared container assets (PostGIS init, future Nginx)
-├── scripts/      operational scripts (e.g. Telangana seed, Phase 2)
-├── tests/        cross-cutting / E2E tests (Phase 8)
+├── docs/         MkDocs documentation site (architecture, deploy, API, datasets)
+├── deployment/   Nginx reverse proxy + monitoring stack (Prometheus/Grafana/Loki)
+├── docker/       shared container assets (PostGIS init)
+├── scripts/      operational scripts (Telangana seed, OpenAPI export, …)
+├── tests/        cross-cutting fixtures; E2E lives in frontend/e2e (Playwright)
 ├── .github/      CI workflows
 ├── docker-compose.yml
 ├── README.md
@@ -70,6 +80,18 @@ npm run lint && npm run typecheck
 ```
 
 Install git hooks: `pip install pre-commit && pre-commit install`.
+
+## Testing (SRS §30)
+
+| Suite | Command | Gate |
+| --- | --- | --- |
+| Backend (pytest) | `cd backend && pytest --cov=app --cov-fail-under=85` | ≥ 85% coverage |
+| Frontend (Vitest) | `cd frontend && npm run test:coverage` | ≥ 70% coverage |
+| E2E (Playwright) | `cd frontend && npx playwright install chromium && npm run e2e` | core flows |
+
+CI (`.github/workflows/ci.yml`) runs lint, type-check, both test suites with
+coverage gates, E2E, security scans, Docker builds, and the docs build on every
+pull request. See the [Developer Guide](docs/developer-guide.md).
 
 ## Architecture principles (SRS §11.2)
 

@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     postgres_host: str = "db"
     postgres_port: int = 5432
     postgres_user: str = "prism"
-    postgres_password: str = "prism"
+    postgres_password: str = "prism"  # noqa: S105 - dev default; real secret from env (§29.2)
     postgres_db: str = "prism_earth"
 
     # --- Redis (SRS §23) -------------------------------------------------
@@ -120,6 +120,28 @@ class Settings(BaseSettings):
     mcp_http_host: str = "127.0.0.1"
     mcp_http_port: int = 8765
     mcp_request_timeout: float = 60.0
+
+    # --- Observability (SRS §27, §7.7) ----------------------------------
+    # Prometheus metrics are exposed at ``/metrics`` (scraped by the monitoring
+    # stack, SRS §27.2/§27.3). OpenTelemetry tracing is opt-in: it exports spans
+    # only when an OTLP endpoint is configured, so dev and the test suite run
+    # with a no-op tracer and incur no overhead.
+    metrics_enabled: bool = True
+    otel_enabled: bool = False
+    otel_exporter_endpoint: str | None = None  # OTLP/HTTP, e.g. http://otel-collector:4318
+    otel_service_name: str = "prism-earth-backend"
+
+    # --- Rate limiting (SRS §13.19, §29) --------------------------------
+    # A configurable, environment-specific gateway limiter applied to the data
+    # endpoints (/fetch, /ask) regardless of authentication. It complements the
+    # per-token budget in ``require_auth`` and the Nginx edge limit (defense in
+    # depth). Keyed by token id when authenticated, else by client IP. The
+    # default budget is generous so the browser UX and deterministic gate keep
+    # working unchanged; production tightens it via the environment.
+    rate_limit_enabled: bool = True
+    rate_limit_per_minute: int = 120
+    # Reject request bodies larger than this many bytes before parsing (§29.1).
+    max_request_body_bytes: int = 1_048_576  # 1 MiB
 
     @property
     def database_url(self) -> str:

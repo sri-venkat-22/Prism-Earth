@@ -1,0 +1,17 @@
+# Prometheus scrape config (SRS §27.2, §27.3).
+# Scrapes the FastAPI backend's /metrics endpoint (app.observability.metrics).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: prism-backend
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["backend:8000"]
+        labels:
+          service: prism-earth-backend
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

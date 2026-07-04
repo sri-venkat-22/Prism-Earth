@@ -26,17 +26,27 @@ dependencies = [
     # (only when running `python -m app.mcp`), so the REST app and the gate never
     # require it. The MCP server is a thin client over the REST API (§34.2).
     "mcp>=1.2,<2.0",
+    # Observability (SRS §27): Prometheus metrics at /metrics and opt-in
+    # OpenTelemetry tracing (a no-op unless an OTLP endpoint is configured).
+    "prometheus-client>=0.21,<1.0",
+    "opentelemetry-sdk>=1.27,<2.0",
+    "opentelemetry-instrumentation-fastapi>=0.48b0",
+    "opentelemetry-exporter-otlp-proto-http>=1.27,<2.0",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
     "httpx>=0.27",
     "ruff>=0.7",
     "black>=24.10",
     "mypy>=1.13",
     "types-pyyaml>=6.0",
+    # Load testing (SRS §30.3 Table 7). Used ad hoc against a running instance;
+    # not part of the unit/integration gate.
+    "locust>=2.32",
 ]
 
 # This is a runnable application, not a distributable package — uv should manage
@@ -54,10 +64,14 @@ src = ["app"]
 extend-exclude = ["migrations"]
 
 [tool.ruff.lint]
-# Pragmatic Phase 0 set: pycodestyle errors, pyflakes, import sorting,
-# pyupgrade, and bugbear. Security scanning (flake8-bandit) is added in
-# Phase 8 (SRS §29) to avoid false positives on config defaults.
-select = ["E", "F", "I", "UP", "B"]
+# pycodestyle errors, pyflakes, import sorting, pyupgrade, bugbear, and (Phase 8,
+# SRS §29/§35.6) flake8-bandit static security analysis.
+select = ["E", "F", "I", "UP", "B", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests legitimately use asserts (S101), in-fixture secrets/tokens (S105-107),
+# and /tmp fixture paths (S108); none of that ships to production.
+"app/tests/**" = ["S101", "S105", "S106", "S107", "S108"]
 
 # --------------------------------------------------------------------------- #
 # Black (formatting)                                                           #
@@ -87,4 +101,29 @@ exclude = ["migrations/", "app/tests/"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["app/tests"]
+# Coverage is opt-in via ``--cov`` (CI passes it) so local runs stay fast.
 addopts = "-q"
+
+# --------------------------------------------------------------------------- #
+# Coverage.py (SRS §30.5, §35.6) — gate at 85% for the backend                 #
+# --------------------------------------------------------------------------- #
+[tool.coverage.run]
+branch = true
+source = ["app"]
+omit = [
+    "app/tests/*",
+    # The `python -m app.mcp` process entrypoint is exercised as a subprocess,
+    # not in-process; it carries no logic worth unit-covering.
+    "app/mcp/__main__.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 85
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "\\.\\.\\.",
+]

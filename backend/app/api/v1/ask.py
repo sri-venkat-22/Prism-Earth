@@ -23,6 +23,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import gateway_guard
 from app.ask import AskPipeline, build_ask_pipeline
 from app.auth import Principal, require_auth
 from app.core.database import get_session
@@ -49,6 +50,7 @@ async def ask(
     request: Request,
     pipeline: Annotated[AskPipeline, Depends(get_ask_pipeline)],
     _principal: Annotated[Principal, Depends(require_auth("ask"))],
+    _gateway: Annotated[None, Depends(gateway_guard)] = None,
 ) -> AskResponse:
     """Plan → fetch → synthesize a cited answer for a question (SRS §13.13).
 

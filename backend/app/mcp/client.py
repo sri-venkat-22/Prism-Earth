@@ -76,7 +76,7 @@ class PrismClient:
             payload = {"detail": response.text}
         if response.status_code >= 400:
             raise PrismApiError(response.status_code, payload)
-        assert isinstance(payload, dict)
+        assert isinstance(payload, dict)  # noqa: S101 - narrows the decoded JSON type
         return payload
 
     async def get(

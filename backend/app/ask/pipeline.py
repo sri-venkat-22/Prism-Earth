@@ -22,6 +22,7 @@ import time
 from app.core.logging import get_logger
 from app.fetchers import FetchOrchestrator
 from app.metadata.catalog import Catalog, get_catalog
+from app.observability.metrics import observe_pipeline_stage
 from app.planners import Planner
 from app.planners.planner import PlanResult
 from app.schemas.ask import (
@@ -77,6 +78,12 @@ class AskPipeline:
         synth_ms = (time.perf_counter() - synth_started) * 1000.0
 
         total_ms = (time.perf_counter() - started) * 1000.0
+
+        # Publish per-stage latency for the monitoring stack (SRS §27.2).
+        observe_pipeline_stage("planner", plan_result.duration_ms / 1000.0)
+        observe_pipeline_stage("fetch", fetch_ms / 1000.0)
+        observe_pipeline_stage("synthesizer", synth_ms / 1000.0)
+
         trace = self._build_trace(
             plan_result=plan_result,
             fetch=fetch,

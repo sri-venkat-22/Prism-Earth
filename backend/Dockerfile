@@ -33,4 +33,11 @@ USER appuser
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Liveness for orchestrators (SRS §7.3). Uses the readiness-independent /health
+# endpoint, which returns 200 while the process is serving.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/v1/health').status==200 else 1)"
+
+# Production default: multiple Uvicorn workers behind Nginx (SRS §33). Override
+# the worker count via the compose command for horizontal tuning.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]

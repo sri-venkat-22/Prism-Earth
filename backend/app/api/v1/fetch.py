@@ -21,6 +21,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import gateway_guard
 from app.auth import Principal, require_auth
 from app.core.database import get_session
 from app.fetchers import FetchOrchestrator, build_fetch_orchestrator
@@ -47,6 +48,7 @@ async def fetch(
     request: Request,
     orchestrator: Annotated[FetchOrchestrator, Depends(get_fetch_orchestrator)],
     _principal: Annotated[Principal, Depends(require_auth("fetch"))],
+    _gateway: Annotated[None, Depends(gateway_guard)] = None,
 ) -> FetchResponse:
     """Retrieve fields (or an expanded preset) at a coordinate (SRS §13.9).
 

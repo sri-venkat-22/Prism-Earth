@@ -25,6 +25,7 @@ from app.core.redis import close_redis, get_redis, init_redis
 from app.metadata import get_catalog, get_state_registry, validate_catalog
 from app.middleware.correlation import CorrelationIdMiddleware
 from app.middleware.security import SecurityHeadersMiddleware
+from app.observability import MetricsMiddleware, configure_tracing, metrics_router
 
 logger = get_logger(__name__)
 
@@ -75,9 +76,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         title=settings.app_name,
         version=settings.app_version,
         description=(
-            "Prism Earth — deterministic, citation-backed geospatial intelligence. "
-            "Phase 0 scaffold (no business logic)."
+            "Deterministic, citation-backed geospatial intelligence for India "
+            "(SRS §1, §13). Public metadata discovery via `/meta/*`; deterministic "
+            "retrieval via `POST /fetch`; natural-language cited answers via "
+            "`POST /ask`. Every field carries provenance; every answer cites its "
+            "sources."
         ),
+        openapi_tags=[
+            {"name": "meta", "description": "Public metadata catalog & State Registry (§13.5)."},
+            {"name": "fetch", "description": "Deterministic field retrieval (§13.9)."},
+            {"name": "ask", "description": "Natural-language geospatial intelligence (§13.13)."},
+            {"name": "auth", "description": "Token, device-flow, and OAuth endpoints (§13.20)."},
+            {"name": "health", "description": "Health, readiness, and liveness probes (§13.16)."},
+        ],
         openapi_url=f"{settings.api_v1_prefix}/openapi.json",
         docs_url="/docs",
         redoc_url="/redoc",
@@ -94,7 +105,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     else:
         app.state.ephemeral_store = InMemoryEphemeralStore()
 
-    # Middleware (outermost first).
+    # Middleware. add_middleware installs outermost-last, so the request path is
+    # CORS -> Security -> Correlation -> Metrics -> app. Metrics is innermost so
+    # its access log runs while the correlation id is still bound to the log
+    # context (SRS §27.1); Correlation binds it one layer out (SRS §28.2).
+    if settings.metrics_enabled:
+        app.add_middleware(MetricsMiddleware)
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(SecurityHeadersMiddleware, hsts=settings.is_production)
     app.add_middleware(
@@ -109,6 +125,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(api_v1_router, prefix=settings.api_v1_prefix)
     # OAuth discovery documents live at the origin root (SRS §13.20, §34).
     app.include_router(well_known_router)
+    # Prometheus scrape endpoint at the origin root (SRS §27.2/§27.3).
+    if settings.metrics_enabled:
+        app.include_router(metrics_router)
+
+    # Opt-in OpenTelemetry tracing (no-op unless an OTLP endpoint is configured).
+    configure_tracing(app, settings)
 
     @app.get("/", tags=["meta"], summary="Service banner")
     async def root() -> dict[str, str]:

@@ -25,6 +25,18 @@ dist/
 build/
 *.log
 
+# --- Docs site (mkdocs build output) ---
+site/
+
+# --- Test / coverage artifacts ---
+coverage.xml
+.coverage.*
+htmlcov/
+/openapi.json
+frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/
+
 # --- Env / secrets ---
 .env.*
 !.env.example

@@ -63,7 +63,8 @@ step 6 — re-check that submission.
 
 - The supported datasets (Sentinel-2, TerraClimate, JRC Global Surface Water,
   Copernicus DEM, MODIS, VIIRS) are registered in
-  [`backend/app/gee/datasets.py`](../backend/app/gee/datasets.py) (SRS §19.4).
+  [`backend/app/gee/datasets.py`](https://github.com/sri-venkat-22/prism-earth/blob/main/backend/app/gee/datasets.py)
+  (SRS §19.4).
 - The smoke test samples `USGS/SRTMGL1_003` (always available); CartoDEM /
   Copernicus DEM are the production elevation sources.
 - Never commit the JSON key. In production, mount it from a secrets manager.

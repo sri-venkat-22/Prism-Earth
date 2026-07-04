@@ -20,6 +20,7 @@ from app.core.config import Settings, get_settings
 from app.core.database import ping_database
 from app.core.redis import ping_redis
 from app.metadata.catalog import get_catalog
+from app.observability.metrics import record_connector_health
 from app.schemas.common import (
     ComponentStatus,
     ConnectorHealthObject,
@@ -89,6 +90,8 @@ async def connectors_health() -> ConnectorsHealthResponse:
     connectors: list[ConnectorHealthObject] = []
     for connector in registry.connectors():
         health_report = await connector.health()
+        # Feed the connector-health gauge scraped by Prometheus (SRS §27.2).
+        record_connector_health(connector.name, ok=health_report.status == "ok")
         connectors.append(
             ConnectorHealthObject(
                 name=connector.name,

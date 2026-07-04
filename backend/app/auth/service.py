@@ -189,7 +189,7 @@ class AuthService:
         client_id = "mcp_" + secrets.token_urlsafe(16)
         secret: str | None = None
         secret_hash: str | None = None
-        if token_endpoint_auth_method != "none":
+        if token_endpoint_auth_method != "none":  # noqa: S105 - OAuth method name, not a secret
             secret = secrets.token_urlsafe(32)
             secret_hash = hash_secret(secret)
         record = OAuthClientRecord(

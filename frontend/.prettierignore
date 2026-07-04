@@ -4,5 +4,10 @@ out
 build
 package-lock.json
 
+# Test + coverage artifacts (generated).
+coverage
+playwright-report
+test-results
+
 # Bundled geodata is committed minified — never reformat.
 public/*.geojson

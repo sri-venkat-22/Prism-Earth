@@ -51,7 +51,7 @@ def get_engine() -> AsyncEngine:
 def get_sessionmaker() -> async_sessionmaker[AsyncSession]:
     if _sessionmaker is None:
         init_engine()
-    assert _sessionmaker is not None  # set by init_engine above
+    assert _sessionmaker is not None  # noqa: S101 - type-narrowing invariant, set above
     return _sessionmaker
 
 

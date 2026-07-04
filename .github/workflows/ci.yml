@@ -1,5 +1,8 @@
-# Minimal CI (SRS §31). Phase 0 runs lint + type-check + backend tests on the
-# scaffold. The full pipeline (security scan, image build, deploy) is Phase 8.
+# Prism Earth CI (SRS §31.1, §30.4).
+#
+# Pipeline flow (§31.1): build → lint → unit tests → integration tests →
+# security scan → Docker build. Every push and pull request runs the full gate;
+# image publishing and docs deployment live in release.yml and only run on main.
 name: CI
 
 on:
@@ -7,8 +10,19 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
+  # --------------------------------------------------------------------- #
+  # Backend — lint, type-check, security lint, and tests with coverage gate #
+  # --------------------------------------------------------------------- #
   backend:
+    name: Backend (lint · type · test)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -19,18 +33,29 @@ jobs:
         uses: astral-sh/setup-uv@v3
       - name: Set up Python
         run: uv python install 3.12
-      - name: Install dependencies
+      - name: Install dependencies (frozen)
         run: uv sync --frozen
-      - name: Ruff
+      - name: Ruff (lint + flake8-bandit security rules)
         run: uv run ruff check .
-      - name: Black (check)
+      - name: Black (format check)
         run: uv run black --check .
-      - name: mypy
+      - name: mypy (type check)
         run: uv run mypy app
-      - name: Pytest
-        run: uv run pytest
+      - name: Pytest with coverage gate (>= 85%)
+        run: uv run pytest --cov=app --cov-report=xml --cov-report=term-missing --cov-fail-under=85
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml
+          if-no-files-found: ignore
 
+  # --------------------------------------------------------------------- #
+  # Frontend — lint, type-check, format, unit tests (coverage gate), build #
+  # --------------------------------------------------------------------- #
   frontend:
+    name: Frontend (lint · type · test · build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -50,5 +75,111 @@ jobs:
         run: npm run typecheck
       - name: Format check
         run: npm run format:check
+      - name: Unit tests + coverage gate (>= 70%)
+        run: npm run test:coverage
       - name: Build
         run: npm run build
+
+  # --------------------------------------------------------------------- #
+  # End-to-end — Playwright over the built UI with a mocked API (§36.1)     #
+  # --------------------------------------------------------------------- #
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Run E2E
+        run: npx playwright test
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
+          if-no-files-found: ignore
+
+  # --------------------------------------------------------------------- #
+  # Security scan (§29, §31.1) — dependency + filesystem vulnerability scan #
+  # Report-only (continue-on-error) so transitive advisories surface in the #
+  # PR without blocking; flip to blocking once a triage/ignore list exists. #
+  # --------------------------------------------------------------------- #
+  security-scan:
+    name: Security scan
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      - name: Python dependency audit (pip-audit)
+        run: |
+          uv export --frozen --no-dev --no-emit-project --no-hashes \
+            --project backend -o /tmp/requirements.txt
+          uvx pip-audit -r /tmp/requirements.txt
+      - name: Frontend dependency audit (npm)
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+  # --------------------------------------------------------------------- #
+  # Docker build — validate both images build (no push) on every change     #
+  # --------------------------------------------------------------------- #
+  docker-build:
+    name: Docker build (validate)
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: false
+          tags: prism-earth-backend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: false
+          tags: prism-earth-frontend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # --------------------------------------------------------------------- #
+  # Docs — the MkDocs site must build cleanly (§36.4)                       #
+  # --------------------------------------------------------------------- #
+  docs:
+    name: Docs (mkdocs build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install MkDocs
+        run: pip install -r docs/requirements.txt
+      - name: Build site (strict)
+        run: mkdocs build --strict

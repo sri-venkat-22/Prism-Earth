@@ -25,7 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import ApiTokenRow, OAuthClientRow
 
-TOKEN_PREFIX = "pe_"
+TOKEN_PREFIX = "pe_"  # noqa: S105 - a public token prefix, not a secret
 
 
 # --------------------------------------------------------------------------- #
@@ -85,7 +85,7 @@ class OAuthClientRecord:
     redirect_uris: tuple[str, ...] = ()
     grant_types: tuple[str, ...] = ()
     scopes: frozenset[str] = frozenset()
-    token_endpoint_auth_method: str = "none"
+    token_endpoint_auth_method: str = "none"  # noqa: S105 - OAuth field name, not a secret
     client_secret_hash: str | None = None
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 

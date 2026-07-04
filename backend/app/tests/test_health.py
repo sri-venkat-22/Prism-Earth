@@ -25,6 +25,18 @@ def _patch_pings(monkeypatch: pytest.MonkeyPatch, *, db: bool, redis: bool) -> N
     monkeypatch.setattr(health_module, "ping_redis", _ok if redis else _down)
 
 
+def _unset_earth_engine(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Force Earth Engine unconfigured so the assertion is environment-independent.
+
+    A developer machine may have a gitignored ``.env`` configuring GEE; without
+    this the ``not_configured`` assertion would flip to ``ok`` locally while
+    still passing in clean CI (test-hermeticity fix, SRS §30).
+    """
+    settings = health_module.get_settings()
+    monkeypatch.setattr(settings, "earth_engine_service_account", None)
+    monkeypatch.setattr(settings, "earth_engine_key_file", None)
+
+
 def test_live_returns_200(client: TestClient) -> None:
     resp = client.get("/api/v1/live")
     assert resp.status_code == 200
@@ -37,6 +49,7 @@ def test_health_returns_200_even_when_dependencies_down(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _patch_pings(monkeypatch, db=False, redis=False)
+    _unset_earth_engine(monkeypatch)
     resp = client.get("/api/v1/health")
     assert resp.status_code == 200  # DoD: /api/v1/health returns 200
     body = resp.json()

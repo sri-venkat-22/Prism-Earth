@@ -1,0 +1,55 @@
+site_name: Prism Earth
+site_description: Deterministic, citation-backed geospatial intelligence for India (SRS §1).
+site_author: Prism Earth
+repo_url: https://github.com/sri-venkat-22/prism-earth
+docs_dir: docs
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - content.code.copy
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+
+nav:
+  - Home: index.md
+  - Guides:
+      - Architecture: architecture.md
+      - Developer Guide: developer-guide.md
+      - Deployment Guide: deployment.md
+      - Observability: observability.md
+      - Security: security.md
+  - Reference:
+      - API Reference: api.md
+      - Dataset Documentation: datasets.md
+  - Setup:
+      - Local PostGIS: local_postgis_setup.md
+      - Google Earth Engine: google_earth_engine_setup.md
+      - MCP & Authentication: mcp_and_auth.md
