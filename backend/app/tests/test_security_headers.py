@@ -38,7 +38,16 @@ def test_hsts_emitted_only_in_production() -> None:
     with TestClient(dev) as client:
         assert "Strict-Transport-Security" not in client.get("/api/v1/live").headers
 
-    prod = create_app(Settings(app_env="production"))
+    # A production app must pass runtime validation to boot (SRS §29, §13.20):
+    # auth on with a bootstrap admin token and a non-wildcard CORS allow-list.
+    prod = create_app(
+        Settings(
+            app_env="production",
+            auth_enabled=True,
+            auth_admin_token="test-admin",  # noqa: S106 - test-only bootstrap credential
+            cors_origins=[],
+        )
+    )
     with TestClient(prod) as client:
         resp = client.get("/api/v1/live")
         assert "max-age=" in resp.headers["Strict-Transport-Security"]

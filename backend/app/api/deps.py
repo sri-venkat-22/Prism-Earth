@@ -35,11 +35,27 @@ def _settings(request: Request) -> Settings:
     return settings if isinstance(settings, Settings) else get_settings()
 
 
-def _client_key(request: Request) -> str:
-    """Identify the client for rate-limiting (honoring a proxy's forwarded IP)."""
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+def _client_key(request: Request, settings: Settings) -> str:
+    """Identify the client for rate-limiting, safe against header spoofing.
+
+    Client-supplied ``X-Forwarded-For`` is spoofable — trusting its first hop
+    lets an attacker rotate keys and slip the per-IP budget (§13.19). So proxy
+    headers are honored only when ``trust_proxy_headers`` is set (i.e. the app
+    runs behind a trusted reverse proxy). Then the Nginx-set ``X-Real-IP`` is
+    authoritative (Nginx overwrites it with the real peer, §33.1); failing that,
+    the *last* ``X-Forwarded-For`` hop (appended by the trusted proxy) is used.
+    Without a trusted proxy the direct socket peer is used and forwarded headers
+    are ignored entirely, closing the key-rotation bypass.
+    """
+    if settings.trust_proxy_headers:
+        real_ip = request.headers.get("X-Real-IP", "").strip()
+        if real_ip:
+            return real_ip
+        forwarded = request.headers.get("X-Forwarded-For")
+        if forwarded:
+            hops = [hop.strip() for hop in forwarded.split(",") if hop.strip()]
+            if hops:
+                return hops[-1]
     return request.client.host if request.client else "unknown"
 
 
@@ -72,7 +88,7 @@ async def gateway_guard(
         return
 
     limit = settings.rate_limit_per_minute
-    key = f"gateway:{_client_key(request)}"
+    key = f"gateway:{_client_key(request, settings)}"
     count = await enforce_rate_limit(ephemeral, key, limit)
 
     remaining = max(limit - count, 0)

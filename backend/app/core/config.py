@@ -46,7 +46,17 @@ class Settings(BaseSettings):
     log_json: bool = False
 
     # --- CORS ------------------------------------------------------------
+    # Cross-origin *browser* access. The bundled frontend is served same-origin
+    # through Nginx (§33.1), so it needs no entry here; this list is only for
+    # separate browser apps hosted on other origins. Non-browser consumers (MCP
+    # HTTP, curl, server-to-server) are unaffected by CORS. The ``*`` wildcard is
+    # a dev convenience and is rejected in production (see ``validate_runtime``).
     cors_origins: list[str] = ["*"]
+    # Send ``Access-Control-Allow-Credentials``. The API authenticates with
+    # bearer tokens in the Authorization header (not cookies), so this is off by
+    # default. Browsers reject ``*`` + credentials, so the two are never paired
+    # (also enforced in ``validate_runtime``).
+    cors_allow_credentials: bool = False
 
     # --- PostgreSQL / PostGIS (SRS §20, §22) ----------------------------
     postgres_host: str = "db"
@@ -142,6 +152,13 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = 120
     # Reject request bodies larger than this many bytes before parsing (§29.1).
     max_request_body_bytes: int = 1_048_576  # 1 MiB
+    # Trust proxy-set client-IP headers (``X-Real-IP`` / ``X-Forwarded-For``)
+    # when keying the rate limiter. OFF by default: exposed directly, those
+    # headers are client-controlled and would let an attacker rotate keys to
+    # dodge the per-IP budget (§13.19). Enable ONLY behind a trusted reverse
+    # proxy — Nginx overwrites ``X-Real-IP`` with the real peer (§33.1), so it
+    # becomes authoritative and client-supplied values are ignored.
+    trust_proxy_headers: bool = False
 
     @property
     def database_url(self) -> str:
@@ -159,6 +176,44 @@ class Settings(BaseSettings):
     def earth_engine_configured(self) -> bool:
         """True when a service account and key file are both set (SRS §19.3)."""
         return bool(self.earth_engine_service_account and self.earth_engine_key_file)
+
+    def validate_runtime(self) -> list[str]:
+        """Return fatal misconfigurations for the current environment (§29, §13.20).
+
+        Checked at startup (fail-fast, in the lifespan) and by the readiness
+        probe (defense in depth). An empty list means the configuration is safe
+        to expose. Production must not serve data endpoints open, must not use a
+        wildcard CORS origin, and must be able to bootstrap token issuance.
+        """
+        problems: list[str] = []
+        if self.is_production:
+            if not self.auth_enabled:
+                problems.append(
+                    "Authentication is disabled in production: set "
+                    "PRISM_AUTH_ENABLED=true so POST /fetch, POST /ask, and the "
+                    "MCP tools reject anonymous access (§13.20)."
+                )
+            elif not self.auth_admin_token:
+                problems.append(
+                    "Authentication is enabled in production but "
+                    "PRISM_AUTH_ADMIN_TOKEN is unset, so no tokens can be issued "
+                    "and the platform is unusable: set a bootstrap admin "
+                    "credential (§13.20)."
+                )
+            if "*" in self.cors_origins:
+                problems.append(
+                    "CORS is set to the '*' wildcard in production: set "
+                    "PRISM_CORS_ORIGINS to an explicit allow-list, or '[]' for "
+                    "same-origin only (§29.3)."
+                )
+        # Invalid in every environment — browsers reject '*' with credentials.
+        if self.cors_allow_credentials and "*" in self.cors_origins:
+            problems.append(
+                "CORS allow_credentials cannot be combined with the '*' origin; "
+                "browsers reject the pair. Set an explicit PRISM_CORS_ORIGINS "
+                "allow-list or leave PRISM_CORS_ALLOW_CREDENTIALS off."
+            )
+        return problems
 
 
 @lru_cache(maxsize=1)

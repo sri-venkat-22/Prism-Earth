@@ -34,6 +34,17 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Initialize and tear down shared resources."""
     settings: Settings = app.state.settings
+
+    # Fail fast on fatal misconfiguration — an open production API, a wildcard
+    # CORS origin, or an invalid credentials pairing — before allocating any
+    # resources or serving a single request (SRS §29, §13.20). The readiness
+    # probe reports the same problems as defense in depth (§13.16).
+    problems = settings.validate_runtime()
+    if problems:
+        for problem in problems:
+            logger.error("config.invalid", detail=problem)
+        raise RuntimeError("Refusing to start — fatal configuration errors: " + " ".join(problems))
+
     init_engine(settings)
     init_redis(settings)
     try:
@@ -116,7 +127,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
-        allow_credentials=True,
+        allow_credentials=settings.cors_allow_credentials,
         allow_methods=["*"],
         allow_headers=["*"],
     )

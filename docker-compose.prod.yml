@@ -57,9 +57,20 @@ services:
       PRISM_AUTH_USE_REDIS: "true"
       PRISM_METRICS_ENABLED: "true"
       PRISM_RATE_LIMIT_ENABLED: "true"
-      # Opt-in auth + tracing — supply via .env in production (SRS §13.20, §27.3).
-      PRISM_AUTH_ENABLED: ${PRISM_AUTH_ENABLED:-false}
-      PRISM_AUTH_ADMIN_TOKEN: ${PRISM_AUTH_ADMIN_TOKEN:-}
+      # Secure-by-default production posture (SRS §13.20, §29.3). Auth is ON
+      # unless explicitly overridden, and the app refuses to start with it off in
+      # production. A bootstrap admin token is REQUIRED to issue tokens.
+      PRISM_AUTH_ENABLED: ${PRISM_AUTH_ENABLED:-true}
+      PRISM_AUTH_ADMIN_TOKEN: ${PRISM_AUTH_ADMIN_TOKEN:?set PRISM_AUTH_ADMIN_TOKEN in .env to bootstrap token issuance}
+      # CORS: default to same-origin only ("[]"). The frontend is served through
+      # Nginx on the same origin, so no cross-origin entry is needed; set a JSON
+      # allow-list here only for a separate browser app. Wildcard is rejected in
+      # production.
+      PRISM_CORS_ORIGINS: ${PRISM_CORS_ORIGINS:-[]}
+      # The app sits behind Nginx, which sets a trustworthy X-Real-IP, so honor
+      # the forwarded client IP for rate-limit keying (spoof-safe, SRS §13.19).
+      PRISM_TRUST_PROXY_HEADERS: "true"
+      # Opt-in tracing — supply via .env in production (SRS §27.3).
       PRISM_OTEL_ENABLED: ${PRISM_OTEL_ENABLED:-false}
       PRISM_OTEL_EXPORTER_ENDPOINT: ${PRISM_OTEL_EXPORTER_ENDPOINT:-}
     volumes:
@@ -72,7 +83,17 @@ services:
     build:
       context: ./backend
     restart: unless-stopped
-    environment: *backend_env
+    environment:
+      <<: *backend_env
+      # GEE credentials are mounted as a Docker secret at /run/secrets/gee_key —
+      # never baked into the image or committed (SRS §19.3, §29.2). Only the
+      # backend needs them; the migrate job does not. Rotate the key before
+      # exposure and replace ./secrets/prism-earth-gee.json from your key store.
+      PRISM_EARTH_ENGINE_SERVICE_ACCOUNT: ${GEE_SERVICE_ACCOUNT:-}
+      PRISM_EARTH_ENGINE_PROJECT: ${GEE_PROJECT:-}
+      PRISM_EARTH_ENGINE_KEY_FILE: /run/secrets/gee_key
+    secrets:
+      - gee_key
     volumes:
       - ./configs:/configs:ro
     depends_on:
@@ -94,10 +115,13 @@ services:
   frontend:
     build:
       context: ./frontend
+      # NEXT_PUBLIC_* is inlined into the bundle at build time (see the frontend
+      # Dockerfile) — passing it as runtime `environment:` would be a no-op.
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/api/v1}
+        NEXT_PUBLIC_API_DOCS_URL: ${NEXT_PUBLIC_API_DOCS_URL:-/docs}
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/api/v1}
-      NEXT_PUBLIC_API_DOCS_URL: ${NEXT_PUBLIC_API_DOCS_URL:-/docs}
       NEXT_TELEMETRY_DISABLED: "1"
     depends_on:
       backend:
@@ -108,10 +132,13 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
-      # - "443:443"   # enable with the TLS server block in nginx.conf
+      - "443:443"
     volumes:
       - ./deployment/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      # - ./deployment/nginx/certs:/etc/nginx/certs:ro
+      # TLS certs (SRS §29.2). Drop fullchain.pem + privkey.pem here (from your
+      # CA / Let's Encrypt) before exposing the service; Nginx will not start
+      # without them, and :80 redirects to :443.
+      - ./deployment/nginx/certs:/etc/nginx/certs:ro
     depends_on:
       - backend
       - frontend
@@ -119,3 +146,10 @@ services:
 volumes:
   pgdata:
   redisdata:
+
+# GEE service-account key mounted read-only into the backend (SRS §19.3, §29.2).
+# The file stays in the gitignored ./secrets/ directory and is never committed
+# or baked into an image.
+secrets:
+  gee_key:
+    file: ./secrets/prism-earth-gee.json

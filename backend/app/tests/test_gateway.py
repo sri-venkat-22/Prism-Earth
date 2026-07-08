@@ -27,11 +27,13 @@ def _gateway_client(
     rate_limit_enabled: bool = True,
     rate_limit_per_minute: int = 1000,
     max_request_body_bytes: int = 1_048_576,
+    trust_proxy_headers: bool = False,
 ) -> Iterator[TestClient]:
     settings = Settings(
         rate_limit_enabled=rate_limit_enabled,
         rate_limit_per_minute=rate_limit_per_minute,
         max_request_body_bytes=max_request_body_bytes,
+        trust_proxy_headers=trust_proxy_headers,
     )
     app = create_app(settings)
     orchestrator = build_orchestrator(
@@ -80,13 +82,31 @@ def test_body_too_large_rejected() -> None:
         assert resp.json()["error"]["code"] == "PAYLOAD_TOO_LARGE"
 
 
-def test_forwarded_ip_keys_the_limiter() -> None:
-    # Two distinct forwarded IPs get independent budgets even from one client.
+def test_spoofed_forwarded_ip_cannot_bypass_limiter() -> None:
+    # Default (no trusted proxy): X-Forwarded-For is client-controlled, so it is
+    # ignored. Rotating it cannot mint fresh budgets or reset the counter — the
+    # limiter keys on the real socket peer (SRS §13.19, 9-D fix).
     with _gateway_client(rate_limit_per_minute=1) as client:
-        a = client.post("/api/v1/fetch", json=_POINT, headers={"X-Forwarded-For": "1.1.1.1"})
-        b = client.post("/api/v1/fetch", json=_POINT, headers={"X-Forwarded-For": "2.2.2.2"})
+        first = client.post("/api/v1/fetch", json=_POINT, headers={"X-Forwarded-For": "1.1.1.1"})
+        assert first.status_code == 200
+        # A different (spoofed) forwarded IP does not escape the same budget.
+        spoofed = client.post("/api/v1/fetch", json=_POINT, headers={"X-Forwarded-For": "9.9.9.9"})
+        assert spoofed.status_code == 429
+
+
+def test_trusted_proxy_keys_by_real_ip() -> None:
+    # Behind a trusted proxy, the Nginx-set X-Real-IP is authoritative: distinct
+    # real clients get independent budgets, and a spoofed X-Forwarded-For with an
+    # unchanged X-Real-IP cannot rotate the key (SRS §13.19, §33.1).
+    with _gateway_client(rate_limit_per_minute=1, trust_proxy_headers=True) as client:
+        a = client.post("/api/v1/fetch", json=_POINT, headers={"X-Real-IP": "1.1.1.1"})
+        b = client.post("/api/v1/fetch", json=_POINT, headers={"X-Real-IP": "2.2.2.2"})
         assert a.status_code == 200
         assert b.status_code == 200
-        # The first IP's second request is over its budget of 1.
-        again = client.post("/api/v1/fetch", json=_POINT, headers={"X-Forwarded-For": "1.1.1.1"})
+        # Same real IP, spoofed forwarded chain — still the same key, over budget.
+        again = client.post(
+            "/api/v1/fetch",
+            json=_POINT,
+            headers={"X-Real-IP": "1.1.1.1", "X-Forwarded-For": "3.3.3.3"},
+        )
         assert again.status_code == 429

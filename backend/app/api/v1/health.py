@@ -112,10 +112,19 @@ async def connectors_health() -> ConnectorsHealthResponse:
 
 @router.get("/ready", response_model=ReadinessResponse, summary="Readiness probe")
 async def ready(response: Response) -> ReadinessResponse:
-    """Return ``200`` only when all critical dependencies are reachable."""
+    """Return ``200`` only when critical dependencies are reachable and the
+    runtime configuration is safe to serve (SRS §13.16, §29, §13.20).
+
+    The startup guard already refuses to boot a misconfigured production process;
+    the config check here is defense in depth, keeping such a process out of the
+    load balancer even if the guard were bypassed.
+    """
+    settings = get_settings()
     db_ok = await ping_database()
     redis_ok = await ping_redis()
-    is_ready = db_ok and redis_ok
+    config_problems = settings.validate_runtime()
+    config_ok = not config_problems
+    is_ready = db_ok and redis_ok and config_ok
 
     if not is_ready:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
@@ -126,6 +135,10 @@ async def ready(response: Response) -> ReadinessResponse:
         checks={
             "database": ComponentStatus(status="ok" if db_ok else "down"),
             "redis": ComponentStatus(status="ok" if redis_ok else "down"),
+            "config": ComponentStatus(
+                status="ok" if config_ok else "misconfigured",
+                detail=None if config_ok else "; ".join(config_problems),
+            ),
         },
     )
 
