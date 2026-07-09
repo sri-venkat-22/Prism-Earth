@@ -16,9 +16,9 @@ const sora = Sora({
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Prism Earth — Geospatial ground truth for any Indian coordinate",
+  title: "Terra — Geospatial ground truth for any Indian coordinate",
   description:
-    "Prism Earth gives AI agents and analysts sourced, citation-backed geospatial ground truth for any Indian coordinate — terrain, climate, land cover, hazard, infrastructure and more, with full provenance. Pilot region: Telangana.",
+    "Terra gives AI agents and analysts sourced, citation-backed geospatial ground truth for any Indian coordinate — terrain, climate, land cover, hazard, infrastructure and more, with full provenance. Pilot region: Telangana.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

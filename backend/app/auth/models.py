@@ -68,3 +68,6 @@ class OAuthClientRow(Base):
         String(32), nullable=False, default="none"
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    # Open (unauthenticated) RFC 7591 registration → low-trust client whose
+    # tokens carry the reduced self-registered budget (§13.20 trust model).
+    self_registered: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)

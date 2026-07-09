@@ -86,7 +86,7 @@ function FetchWorkbench() {
 
       <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
         <div className="space-y-4">
-          <Card className="glass">
+          <Card>
             <CardHeader>
               <CardTitle className="text-base">Location</CardTitle>
             </CardHeader>
@@ -95,7 +95,7 @@ function FetchWorkbench() {
             </CardContent>
           </Card>
 
-          <Card className="glass">
+          <Card>
             <CardHeader>
               <CardTitle className="text-base">What to retrieve</CardTitle>
             </CardHeader>
@@ -110,11 +110,25 @@ function FetchWorkbench() {
               </div>
 
               {mode === "preset" ? (
-                <PresetSelect
-                  loading={presets.isLoading}
-                  value={preset}
-                  onChange={setPreset}
-                  presets={presets.data?.presets ?? []}
+                presets.isError ? (
+                  <ErrorState
+                    error={presets.error}
+                    onRetry={() => presets.refetch()}
+                    title="Couldn't load presets"
+                  />
+                ) : (
+                  <PresetSelect
+                    loading={presets.isLoading}
+                    value={preset}
+                    onChange={setPreset}
+                    presets={presets.data?.presets ?? []}
+                  />
+                )
+              ) : selectable.isError ? (
+                <ErrorState
+                  error={selectable.error}
+                  onRetry={() => selectable.refetch()}
+                  title="Couldn't load the field catalog"
                 />
               ) : (
                 <FieldPicker

@@ -3,7 +3,7 @@
 Every dataset connector is an independent adapter between the platform and a
 single logical data source (SRS §18). Connectors share one interface so the
 Fetch Engine treats them uniformly (SRS §18.2) and converts dataset-specific
-formats into the standardized Prism Earth Field Object (SRS §18.11).
+formats into the standardized Terra Field Object (SRS §18.11).
 
 This module defines:
 
@@ -70,6 +70,25 @@ class FieldResult(BaseModel):
     confidence: Confidence = Field(Confidence.HIGH, description="Data-quality indicator")
     null_reason: NullReason | None = Field(
         None, description="Why the value is null (required when value is None)"
+    )
+    derivation: str | None = Field(
+        None,
+        description=(
+            "Set when the value is a Terra derivation from the cited "
+            "dataset rather than a value the dataset itself publishes (SRS "
+            "§16.4 Independence) — e.g. our return-period banding of GloFAS "
+            "depths. Machine-readable so consumers never attribute the "
+            "derived convention to the upstream provider."
+        ),
+    )
+    retrieved_at: str | None = Field(
+        None,
+        description=(
+            "When the value was actually retrieved from the source. Connectors "
+            "leave this unset (the orchestrator stamps the response time); the "
+            "fetch-result cache sets it at write time so a cache-served value "
+            "never claims a fresh retrieval in provenance (SRS §17.3, §23)."
+        ),
     )
 
     @property

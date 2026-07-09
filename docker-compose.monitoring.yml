@@ -1,4 +1,4 @@
-# Prism Earth — observability stack overlay (SRS §27.3, §33.2).
+# Terra — observability stack overlay (SRS §27.3, §33.2).
 #
 # Adds Prometheus (metrics), Grafana (dashboards), Loki (logs), and Promtail
 # (log shipping) alongside the app. Layer it over the prod (or dev) compose:
@@ -6,7 +6,7 @@
 #   docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml up -d
 #
 # Prometheus scrapes backend:8000/metrics; Promtail ships container logs to Loki;
-# Grafana is provisioned with both datasources and the Prism overview dashboard.
+# Grafana is provisioned with both datasources and the Terra overview dashboard.
 services:
   prometheus:
     image: prom/prometheus:v2.54.1

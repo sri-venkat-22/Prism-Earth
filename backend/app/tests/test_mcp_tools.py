@@ -1,6 +1,6 @@
 """MCP tool-logic tests (SRS §34.1, §16.18).
 
-Drives the pure tool functions over a :class:`PrismClient` backed by
+Drives the pure tool functions over a :class:`TerraClient` backed by
 ``httpx.MockTransport`` — no live server. Asserts each tool hits the right REST
 endpoint, sends the bearer token only for the protected endpoints, and returns
 the API JSON verbatim so citations + provenance reach the agent unchanged.
@@ -14,7 +14,7 @@ import httpx
 import pytest
 
 from app.mcp import tools
-from app.mcp.client import PrismApiError, PrismClient
+from app.mcp.client import TerraApiError, TerraClient
 
 _BASE = "http://api.test/api/v1"
 
@@ -83,9 +83,9 @@ def _handler(request: httpx.Request) -> httpx.Response:
     return httpx.Response(404, json={"detail": "not found"})
 
 
-def _client(token: str | None = "test-token") -> PrismClient:
+def _client(token: str | None = "test-token") -> TerraClient:
     transport = httpx.MockTransport(_handler)
-    return PrismClient(_BASE, token=token, client=httpx.AsyncClient(transport=transport))
+    return TerraClient(_BASE, token=token, client=httpx.AsyncClient(transport=transport))
 
 
 async def test_fetch_tool_preserves_citations_and_provenance() -> None:
@@ -104,7 +104,7 @@ async def test_fetch_tool_sends_preset() -> None:
         captured.update(json.loads(request.content))
         return httpx.Response(200, json=_FETCH_RESPONSE)
 
-    client = PrismClient(
+    client = TerraClient(
         _BASE, token="test-token", client=httpx.AsyncClient(transport=httpx.MockTransport(handler))
     )
     await tools.fetch_tool(client, lat=17.385, lng=78.486, preset="terrain")
@@ -132,10 +132,10 @@ async def test_client_raises_on_error_response() -> None:
     def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(401, json={"error": {"code": "AUTHENTICATION_ERROR"}})
 
-    client = PrismClient(
+    client = TerraClient(
         _BASE, token=None, client=httpx.AsyncClient(transport=httpx.MockTransport(handler))
     )
-    with pytest.raises(PrismApiError) as excinfo:
+    with pytest.raises(TerraApiError) as excinfo:
         await tools.fetch_tool(client, lat=1.0, lng=2.0, fields=["elevation"])
     assert excinfo.value.status_code == 401
 
@@ -159,9 +159,9 @@ def test_server_builds_and_registers_srs_tools() -> None:
         )
     )
     names = {t.name for t in asyncio.run(server.list_tools())}
-    assert {"prism_earth_fetch", "prism_earth_ask"} <= names
+    assert {"terra_fetch", "terra_ask"} <= names
     assert {
-        "prism_earth_meta_fields",
-        "prism_earth_meta_layers",
-        "prism_earth_meta_presets",
+        "terra_meta_fields",
+        "terra_meta_layers",
+        "terra_meta_presets",
     } <= names

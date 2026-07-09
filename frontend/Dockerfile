@@ -1,4 +1,4 @@
-# Prism Earth frontend image (SRS §32, §33). Multi-stage production build using
+# Terra frontend image (SRS §32, §33). Multi-stage production build using
 # Next.js standalone output for a minimal, non-root runtime image.
 
 # ---- Dependencies (cached unless the lockfile changes) ----
@@ -15,8 +15,13 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
     NEXT_OUTPUT_STANDALONE=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# NEXT_PUBLIC_* values are inlined at build time; they are public (API base URL,
-# docs URL) and overridable at deploy time by rebuilding with different values.
+# NEXT_PUBLIC_* values are inlined at BUILD time — runtime `environment:` on the
+# container is a no-op for them, so they must arrive as build args. The defaults
+# match the production topology (same-origin through Nginx, SRS §33.1).
+ARG NEXT_PUBLIC_API_BASE_URL=/api/v1
+ARG NEXT_PUBLIC_API_DOCS_URL=/docs
+ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL} \
+    NEXT_PUBLIC_API_DOCS_URL=${NEXT_PUBLIC_API_DOCS_URL}
 RUN npm run build
 
 # ---- Runtime ----

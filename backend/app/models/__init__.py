@@ -22,8 +22,6 @@ from app.models.registry import (
 )
 from app.models.spatial import (
     District,
-    FloodHazardZone,
-    HistoricalFlood,
     Mandal,
     Municipality,
     Parcel,
@@ -58,9 +56,7 @@ __all__ = [
     "Municipality",
     "Ward",
     # Hazards
-    "FloodHazardZone",
     "WaterBody",
-    "HistoricalFlood",
     # Infrastructure
     "Road",
     "Railway",

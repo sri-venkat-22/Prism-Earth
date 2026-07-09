@@ -1,4 +1,4 @@
-# Loki single-binary config for the Prism Earth log stack (SRS §27.1, §27.3).
+# Loki single-binary config for the Terra log stack (SRS §27.1, §27.3).
 # Filesystem storage — suitable for a single-node deployment; swap the object
 # store for S3/GCS at scale.
 auth_enabled: false

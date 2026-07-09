@@ -1,6 +1,6 @@
 """MCP server configuration (SRS §34, §9).
 
-Reads the ``PRISM_MCP_*`` settings into a small value object. Kept separate from
+Reads the ``TERRA_MCP_*`` settings into a small value object. Kept separate from
 the FastMCP server so it can be constructed and overridden (CLI flags, tests)
 without importing the ``mcp`` SDK.
 """

@@ -12,9 +12,11 @@ from __future__ import annotations
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.citations.engine import CitationEngine
-from app.connectors import build_connector_registry
+from app.connectors import build_connector_registry, get_default_connector_registry
 from app.connectors.base import BaseConnector
+from app.core.config import get_settings
 from app.datasets.registry import get_dataset_registry
+from app.fetchers.cache import FetchResultCache
 from app.fetchers.orchestrator import FetchOrchestrator, SupportsStateDetection
 from app.metadata.catalog import get_catalog
 from app.metadata.state_registry import get_state_registry
@@ -36,18 +38,37 @@ def build_fetch_orchestrator(
     """
     catalog = get_catalog()
     dataset_registry = get_dataset_registry()
+    settings = get_settings()
+    cache = (
+        FetchResultCache(
+            catalog=catalog,
+            datasets=dataset_registry,
+            precision=settings.fetch_cache_coord_precision,
+        )
+        if settings.fetch_cache_enabled
+        else None
+    )
     return FetchOrchestrator(
         catalog=catalog,
-        connectors=build_connector_registry(catalog, connectors),
+        # The default fleet is process-wide (connectors are stateless adapters
+        # over lazy clients); only injected fleets get a fresh registry.
+        connectors=(
+            get_default_connector_registry()
+            if connectors is None
+            else build_connector_registry(catalog, connectors)
+        ),
         state_detection=state_detection or StateDetectionService(session),
         state_registry=get_state_registry(),
         provenance=ProvenanceGenerator(catalog, dataset_registry),
         citations=CitationEngine(dataset_registry),
+        cache=cache,
+        deadline_seconds=settings.fetch_deadline_seconds,
     )
 
 
 __all__ = [
     "FetchOrchestrator",
+    "FetchResultCache",
     "SupportsStateDetection",
     "build_fetch_orchestrator",
 ]

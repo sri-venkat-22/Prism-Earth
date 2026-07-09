@@ -48,6 +48,7 @@ Requirements: ``ogr2ogr`` (GDAL with the Parquet driver) on PATH, and ``shapely`
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
@@ -81,6 +82,22 @@ _SOURCES = {
     "ghmc_wards.kml": f"{_OPENCITY}/14b033e3-3721-4149-8326-cc29420e062e/download/ghmc_wards.kml",
     # Survey of India village polygons (~0.7 GB, all-India) — filtered to Telangana.
     "SOI_villages.parquet": f"{_BASE}/villages/SOI_villages.parquet",
+}
+
+# The upstream source revision is pinned by SHA-256 (the GitHub release-asset
+# digests, assets last updated 2026-03-08/09, pins recorded 2026-07-08), so a
+# fresh checkout provably regenerates from the same source the committed
+# fixtures were built from. GitHub release tags are mutable: if upstream
+# re-publishes an asset the digest changes and this script fails with a clear
+# message — review the upstream change, regenerate, and update the pin (and
+# ADMIN_PROVENANCE.json) deliberately rather than silently absorbing it.
+# The OpenCity wards KML offers no stable digest API and is small enough to
+# review by eye; it is intentionally unpinned (retrieved 2026-07-01).
+_EXPECTED_SHA256 = {
+    "SOI_Districts.parquet": "ea9d4ada7e0cd57e041e5bc6af15ed2f440c4af74f1d01375f1acfbaffe7c959",
+    "SOI_Subdistricts.parquet": "26dd65866f6804685e059266bc6ad76f0be3bd6c382b09dd23331c0cce1c9389",
+    "SBM_ULBs.parquet": "731ce321654f893d6478a358e5e8e86a526148d1225497ad6e10bf76f6985e8d",
+    "SOI_villages.parquet": "581900545a64f744d6208120e162992a7427071bd54e2b18d7d31c084e095de3",
 }
 
 # Provenance recorded alongside the generated fixtures.
@@ -148,17 +165,44 @@ def _village_name(props: dict[str, Any]) -> str | None:
     return None
 
 
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _verify_pin(name: str, dest: Path) -> None:
+    """Fail loudly when a downloaded source no longer matches its pinned digest."""
+    expected = _EXPECTED_SHA256.get(name)
+    if expected is None:
+        return
+    actual = _sha256(dest)
+    if actual != expected:
+        raise SystemExit(
+            f"{name}: SHA-256 mismatch — upstream re-published this asset.\n"
+            f"  expected {expected}\n"
+            f"  actual   {actual}\n"
+            "Review the upstream change (ramSeraph/indian_admin_boundaries), then "
+            "regenerate and update _EXPECTED_SHA256 + ADMIN_PROVENANCE.json "
+            "deliberately. Delete the stale file from datasets/_cache/ first."
+        )
+
+
 def _download(cache_dir: Path) -> None:
     cache_dir.mkdir(parents=True, exist_ok=True)
     for name, url in _SOURCES.items():
         dest = cache_dir / name
         if dest.exists() and dest.stat().st_size > 0:
             print(f"  cached  {name} ({dest.stat().st_size / 1e6:.1f} MB)")
+            _verify_pin(name, dest)
             continue
         print(f"  fetch   {name} …")
         subprocess.run(
             ["curl", "-sSL", "--fail", "-o", str(dest), url], check=True, timeout=600
         )
+        _verify_pin(name, dest)
 
 
 def _ogr_features(

@@ -1,8 +1,8 @@
 {
-  "name": "prism-earth-frontend",
+  "name": "terra-frontend",
   "version": "0.1.0",
   "private": true,
-  "description": "Prism Earth frontend (SRS §9, §12). Phase 6 — full browser UX over the public REST APIs.",
+  "description": "Terra frontend (SRS §9, §12). Phase 6 — full browser UX over the public REST APIs.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

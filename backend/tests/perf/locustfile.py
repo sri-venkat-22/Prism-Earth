@@ -1,4 +1,4 @@
-"""Load test for the Prism Earth REST API (SRS §30.3 Table 7, §7.1).
+"""Load test for the Terra REST API (SRS §30.3 Table 7, §7.1).
 
 Models the read-heavy production traffic mix — public metadata discovery plus the
 authenticated data endpoints — so latency and throughput can be measured against
@@ -10,7 +10,7 @@ Usage (against a running instance)::
     pip install locust
     locust -f backend/tests/perf/locustfile.py --host http://localhost:8000
 
-Set ``PRISM_BEARER_TOKEN`` when the target has authentication enabled (§13.20);
+Set ``TERRA_BEARER_TOKEN`` when the target has authentication enabled (§13.20);
 without it the /fetch and /ask calls will receive 401s (still a useful signal for
 the gateway path).
 """
@@ -38,11 +38,11 @@ _QUESTIONS = [
 
 
 def _auth_headers() -> dict[str, str]:
-    token = os.environ.get("PRISM_BEARER_TOKEN")
+    token = os.environ.get("TERRA_BEARER_TOKEN")
     return {"Authorization": f"Bearer {token}"} if token else {}
 
 
-class PrismUser(HttpUser):
+class TerraUser(HttpUser):
     """A synthetic API client exercising the core flows."""
 
     wait_time = between(0.5, 2.5)

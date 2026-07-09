@@ -1,6 +1,6 @@
 # Dataset Documentation
 
-Prism Earth's metadata catalog is the **single source of truth** for what the
+Terra's metadata catalog is the **single source of truth** for what the
 platform can serve (SRS §11.4, §38.2). Version 1 covers the **Telangana** pilot
 region: **9 layers, 93 fields, 18 presets**. This page summarizes the layers and
 their primary datasets; the authoritative, always-current listing is the live

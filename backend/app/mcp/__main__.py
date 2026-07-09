@@ -1,9 +1,9 @@
-"""Run the Prism Earth MCP server (SRS §34).
+"""Run the Terra MCP server (SRS §34).
 
     python -m app.mcp                         # stdio (Claude Desktop / Cursor)
     python -m app.mcp --transport streamable-http --port 8765
 
-Configuration defaults come from the ``PRISM_MCP_*`` settings; CLI flags override
+Configuration defaults come from the ``TERRA_MCP_*`` settings; CLI flags override
 them. The server talks to the REST API at ``--base-url`` and uses ``--token`` as
 the bearer credential for the protected ``/fetch`` and ``/ask`` endpoints.
 """
@@ -19,7 +19,7 @@ from app.mcp.server import build_server
 
 def main() -> None:
     defaults = load_mcp_config()
-    parser = argparse.ArgumentParser(prog="app.mcp", description="Prism Earth MCP server")
+    parser = argparse.ArgumentParser(prog="app.mcp", description="Terra MCP server")
     parser.add_argument(
         "--transport",
         choices=["stdio", "streamable-http"],

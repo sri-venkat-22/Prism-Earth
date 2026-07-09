@@ -1,6 +1,6 @@
 """Natural Hazard Connector (SRS §18.6).
 
-Combines the two Prism Earth data paths in one connector (SRS §18.1):
+Combines the two Terra data paths in one connector (SRS §18.1):
 
 - **Earth Engine raster** (SRS §19.6): ``flood_hazard_class`` and
   ``within_flood_hazard_polygon`` derived from JRC's Global River Flood Hazard
@@ -18,7 +18,7 @@ GloFAS ships a categorical ``depth_category`` band per return period, but its
 than guess at undocumented codes, this connector derives its own
 ``flood_hazard_class`` from the fully-documented *depth* bands (metres): the
 shortest return period at which the point is modelled as inundated sets the
-class (see :data:`_FLOOD_RETURN_PERIODS`) — an explicit, stated Prism Earth
+class (see :data:`_FLOOD_RETURN_PERIODS`) — an explicit, stated Terra
 convention, not one attributed to JRC (SRS §16.4 Independence).
 
 Both data paths are injected as protocols so the connector is unit-testable with
@@ -28,12 +28,12 @@ but not yet servable (no derived model wired) and returns a typed null.
 
 from __future__ import annotations
 
-import asyncio
 import datetime as dt
 from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict
 
+from app.connectors._concurrency import run_blocking
 from app.connectors._spatial import PostgisQueryRunner, nearest
 from app.connectors.base import (
     BaseConnector,
@@ -70,6 +70,22 @@ _SPEC: dict[str, tuple[str, Confidence]] = {
     "surface_water_permanence_pct": (_JRC, Confidence.HIGH),
     "active_fire_count_10km_24h": (_VIIRS, Confidence.HIGH),
 }
+
+# Machine-readable provenance qualifier for values that are Terra's own
+# derivation from the cited dataset, not something the dataset publishes (SRS
+# §16.4 Independence) — see the module docstring for the banding rationale.
+_DERIVATION: dict[str, str] = {
+    "flood_hazard_class": (
+        "Terra banding of JRC GloFAS return-period depth bands: the class "
+        "is set by the shortest return period (RP10–RP500) at which the point "
+        "is modelled as inundated; JRC publishes depths, not this class."
+    ),
+    "within_flood_hazard_polygon": (
+        "Terra derivation from JRC GloFAS depth bands: true when the "
+        "point has a positive modelled depth at any return period up to 500 "
+        "years; JRC publishes no such boolean."
+    ),
+}
 _VECTOR_FIELDS = frozenset({"nearest_waterbody_distance_m", "nearest_waterbody_name"})
 _RASTER_FIELDS = frozenset(
     {
@@ -85,7 +101,7 @@ _FIRE_CONFIDENCE = 7  # VIIRS FireMask ≥ 7 is nominal-or-higher confidence fir
 _FIRE_RADIUS_M = 10_000
 
 # GloFAS return-period depth bands, most-frequent (most hazardous trigger) to
-# rarest, paired with the class Prism Earth assigns when that band is the
+# rarest, paired with the class Terra assigns when that band is the
 # *shortest* return period at which the point is modelled as inundated (see the
 # module docstring for why this is our own derivation, not a JRC-native code).
 _FLOOD_RETURN_PERIODS: tuple[tuple[str, str], ...] = (
@@ -239,7 +255,7 @@ class NaturalHazardConnector(BaseConnector):
             else HazardVectorSample()
         )
         raster = (
-            await asyncio.to_thread(self._raster.sample, context.lat, context.lng)
+            await run_blocking(self._raster.sample, context.lat, context.lng)
             if need_raster
             else HazardRasterSample()
         )
@@ -256,6 +272,7 @@ class NaturalHazardConnector(BaseConnector):
                     dataset=dataset,
                     confidence=confidence,
                     null_reason=None if value is not None else _null_reason(field),
+                    derivation=_DERIVATION.get(field),
                 )
             )
         return results

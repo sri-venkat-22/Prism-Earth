@@ -14,12 +14,12 @@ depends on a :class:`BuildingsSource` protocol and is unit-testable with a fake.
 
 from __future__ import annotations
 
-import asyncio
 import math
 from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict
 
+from app.connectors._concurrency import run_blocking
 from app.connectors.base import (
     BaseConnector,
     Confidence,
@@ -144,7 +144,7 @@ class BuiltEnvironmentConnector(BaseConnector):
 
     async def fetch(self, fields: list[str], context: FetchContext) -> list[FieldResult]:
         await self.validate(fields)
-        sample = await asyncio.to_thread(self._source.sample, context.lat, context.lng)
+        sample = await run_blocking(self._source.sample, context.lat, context.lng)
         values = sample.model_dump()
 
         results: list[FieldResult] = []

@@ -25,6 +25,7 @@ import time
 from app.core.logging import get_logger
 from app.llm import LLMClient
 from app.metadata.catalog import Catalog, get_catalog
+from app.observability.metrics import record_planner_drop
 from app.planners.prompts import build_planner_system_prompt, build_planner_user_prompt
 from app.planners.schema import ExecutionPlan, LLMPlanProposal
 
@@ -123,13 +124,16 @@ class Planner:
         """Build a deterministic, catalog-valid plan from a raw proposal."""
         warnings: list[str] = []
 
-        # Validate presets: keep only registered ones (SRS §14.9).
+        # Validate presets: keep only registered ones (SRS §14.9). Every drop is
+        # counted (terra_planner_dropped_proposals_total) — a rising rate means
+        # the prompt and catalog have drifted apart (§27.2, audit 12-D).
         presets: list[str] = []
         for preset_id in _unique(proposal.presets):
             if self._catalog.has_preset(preset_id):
                 presets.append(preset_id)
             else:
                 warnings.append(f"Ignored unknown preset: {preset_id!r}")
+                record_planner_drop("unknown_preset")
 
         # Collect candidate fields from expanded presets + explicit fields.
         candidates: list[str] = []
@@ -145,8 +149,10 @@ class Planner:
                 selected.add(name)
             elif not self._catalog.has_field(name):
                 warnings.append(f"Dropped undocumented field not in catalog: {name!r}")
+                record_planner_drop("unknown_field")
             else:  # exists but is planned/unavailable
                 warnings.append(f"Dropped non-selectable (planned) field: {name!r}")
+                record_planner_drop("planned_field")
 
         # Canonicalize to catalog order so the plan is order-stable (SRS §14.13).
         fields = [name for name in self._field_order if name in selected]

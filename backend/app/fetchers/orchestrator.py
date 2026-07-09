@@ -35,6 +35,7 @@ from app.connectors.base import (
 )
 from app.connectors.registry import ConnectorRegistry
 from app.core.logging import get_logger
+from app.fetchers.cache import FetchResultCache
 from app.metadata.catalog import Catalog
 from app.metadata.enums import Availability
 from app.metadata.state_registry import StateRegistry
@@ -73,6 +74,8 @@ class FetchOrchestrator:
         state_registry: StateRegistry,
         provenance: ProvenanceGenerator,
         citations: CitationEngine,
+        cache: FetchResultCache | None = None,
+        deadline_seconds: float | None = None,
     ) -> None:
         self._catalog = catalog
         self._connectors = connectors
@@ -80,6 +83,13 @@ class FetchOrchestrator:
         self._states = state_registry
         self._provenance = provenance
         self._citations = citations
+        # Read-through fetch-result cache (SRS §23); ``None`` disables caching.
+        self._cache = cache
+        # Per-connector wall-clock budget within the fan-out (SRS §7.1). All
+        # connectors run concurrently, so this also bounds the whole fetch: a
+        # slow upstream (a pinned GEE region) becomes CONNECTOR_TIMEOUT nulls
+        # instead of holding the request open. ``None`` disables the deadline.
+        self._deadline_seconds = deadline_seconds
 
     async def fetch(
         self,
@@ -109,8 +119,15 @@ class FetchOrchestrator:
         #    not enable into nulls; the rest are eligible for routing.
         eligible, gated_nulls = self._apply_region_gating(requested, spatial)
 
-        # 5–7. Route to connectors and execute them in parallel (SRS §18.10, §15.12).
+        # 5. Read-through cache (SRS §23): fields with a fresh entry at this
+        #    (rounded) coordinate are served without touching their connectors.
         results: dict[str, FieldResult] = dict(gated_nulls)
+        if self._cache is not None and eligible:
+            cached = await self._cache.get_many(eligible, lat=lat, lng=lng)
+            results.update(cached)
+            eligible = [name for name in eligible if name not in cached]
+
+        # 6–7. Route to connectors and execute them in parallel (SRS §18.10, §15.12).
         partial_failures: list[PartialFailure] = []
         await self._route_and_execute(eligible, context, results, partial_failures)
 
@@ -199,7 +216,9 @@ class FetchOrchestrator:
                     # Owned by the connector but no source wired yet (SRS §15.17).
                     results[name] = self._null_result(name, NullReason.DATA_UNAVAILABLE)
             if servable:
-                tasks.append(asyncio.ensure_future(connector.fetch(servable, context)))
+                tasks.append(
+                    asyncio.ensure_future(self._fetch_bounded(connector, servable, context))
+                )
                 task_groups.append((connector, servable))
 
         # SRS §15.12 — parallel; a failing connector must not cancel the others.
@@ -212,6 +231,31 @@ class FetchOrchestrator:
             else:
                 for result in outcome:
                     results[result.field] = result
+                if self._cache is not None:
+                    # Only connector-produced results are cached — synthesized
+                    # failure nulls never reach this branch (SRS §23).
+                    await self._cache.put_many(outcome, lat=context.lat, lng=context.lng)
+
+    async def _fetch_bounded(
+        self, connector: BaseConnector, fields: list[str], context: FetchContext
+    ) -> list[FieldResult]:
+        """Run one connector's fetch under the per-fetch deadline (SRS §7.1).
+
+        A timeout surfaces as an exception that :meth:`_route_and_execute`
+        isolates into CONNECTOR_TIMEOUT nulls + a retryable partial failure,
+        exactly like any other connector failure (SRS §15.16).
+        """
+        if self._deadline_seconds is None:
+            return await connector.fetch(fields, context)
+        try:
+            return await asyncio.wait_for(
+                connector.fetch(fields, context), timeout=self._deadline_seconds
+            )
+        except TimeoutError as exc:
+            raise TimeoutError(
+                f"Connector {connector.name!r} exceeded the "
+                f"{self._deadline_seconds:g}s fetch deadline."
+            ) from exc
 
     # ------------------------------------------------------------------ #
     # Failure / null helpers                                             #
@@ -322,6 +366,7 @@ class FetchOrchestrator:
                 confidence=prov.confidence,
                 null_meaning=prov.null_meaning,
                 reason=prov.reason.value if prov.reason is not None else None,
+                derivation=prov.derivation,
             )
 
         summary_stats = self._provenance.summarize(provenances)

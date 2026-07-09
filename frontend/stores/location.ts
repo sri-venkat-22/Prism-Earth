@@ -55,6 +55,6 @@ export const useLocationStore = create<LocationState>()(
         }),
       clearHistory: () => set({ history: [] }),
     }),
-    { name: "prism-earth-location" },
+    { name: "terra-location" },
   ),
 );

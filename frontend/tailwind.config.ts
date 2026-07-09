@@ -72,6 +72,9 @@ const config: Config = {
         md: "var(--radius-md)",
         sm: "var(--radius-sm)",
         chip: "var(--radius-chip)",
+        // Tailwind's default xl (12px) renders *smaller* than the overridden
+        // lg (14px); pin xl to the card token so every card shares one radius.
+        xl: "var(--radius-lg)",
       },
       transitionTimingFunction: {
         expo: "cubic-bezier(0.22, 1, 0.36, 1)",

@@ -1,6 +1,6 @@
-site_name: Prism Earth
+site_name: Terra
 site_description: Deterministic, citation-backed geospatial intelligence for India (SRS §1).
-site_author: Prism Earth
+site_author: Terra
 repo_url: https://github.com/sri-venkat-22/prism-earth
 docs_dir: docs
 

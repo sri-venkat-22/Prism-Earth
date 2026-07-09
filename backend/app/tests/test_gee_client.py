@@ -120,18 +120,18 @@ def test_initialize_requires_configuration() -> None:
 
 def test_initialize_uses_service_account_and_is_idempotent() -> None:
     settings = Settings(
-        earth_engine_service_account="prism@example.iam.gserviceaccount.com",
+        earth_engine_service_account="terra@example.iam.gserviceaccount.com",
         earth_engine_key_file="/tmp/key.json",
-        earth_engine_project="prism-earth",
+        earth_engine_project="terra",
     )
     fake = FakeEE()
     initialize_earth_engine(settings, ee_module=fake)
     assert fake.initialized is True
     assert fake.credentials == (
-        "prism@example.iam.gserviceaccount.com",
+        "terra@example.iam.gserviceaccount.com",
         "/tmp/key.json",
     )
-    assert fake.init_kwargs == {"project": "prism-earth"}
+    assert fake.init_kwargs == {"project": "terra"}
 
     # Second call is a no-op (idempotent) — re-init would flip this fake.
     second = FakeEE()

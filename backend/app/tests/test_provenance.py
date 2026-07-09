@@ -43,6 +43,26 @@ def test_provenance_records_null_reason_and_meaning() -> None:
     assert prov.null_meaning is not None
 
 
+def test_provenance_passes_derivation_through() -> None:
+    """A connector's derivation qualifier survives enrichment verbatim (§16.4)."""
+    derivation = "Terra banding of JRC GloFAS return-period depth bands."
+    result = FieldResult(
+        field="flood_hazard_class",
+        value="moderate",
+        dataset="JRC Global River Flood Hazard Maps",
+        confidence=Confidence.MEDIUM,
+        derivation=derivation,
+    )
+    prov = _generator().generate(result, retrieved_at="2026-07-08T00:00:00Z")
+    assert prov.derivation == derivation
+
+    # Fields sampled directly from the dataset carry no qualifier.
+    direct = FieldResult(
+        field="elevation", value=10.0, dataset=DEM_DATASET, confidence=Confidence.HIGH
+    )
+    assert _generator().generate(direct, retrieved_at="2026-07-08T00:00:00Z").derivation is None
+
+
 def test_provenance_summary_counts_resolved_and_datasets() -> None:
     gen = _generator()
     results = [

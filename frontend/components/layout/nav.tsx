@@ -48,7 +48,7 @@ export function Nav() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 w-full max-w-[1240px] items-center justify-between gap-4 px-5 sm:px-8">
-        <Link href="/" aria-label="Prism Earth home" className="shrink-0">
+        <Link href="/" aria-label="Terra home" className="shrink-0">
           <Logo />
         </Link>
 

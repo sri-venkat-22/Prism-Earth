@@ -5,17 +5,22 @@
 # scripts/seed_telangana.py. Earth Engine asset ids live in app/gee/datasets.py.
 
 datasets:
-  isro_cartodem:
-    name: ISRO CartoDEM
-    provider: ISRO / NRSC Bhuvan
-    version: v3 R1
+  # Elevation is served by Copernicus DEM GLO-30. SRS §18.3 originally named
+  # ISRO CartoDEM, but CartoDEM has no accessible bulk/API source (it is not in
+  # the public Earth Engine catalog and Bhuvan offers no open download path), so
+  # the claim is reconciled to the source actually queried (Phase 10-B);
+  # CartoDEM can be wired via Bhuvan if an accessible source appears.
+  copernicus_dem:
+    name: Copernicus DEM GLO-30
+    provider: ESA / Copernicus
+    version: GLO-30
     purpose: Elevation, slope, aspect (terrain)
-    source_url: https://bhuvan.nrsc.gov.in/
+    source_url: https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_DEM_GLO30
     crs: EPSG:4326
     ttl: 365d
     spatial_resolution: 30m
     update_frequency: static
-    license: Bhuvan Open Data
+    license: Copernicus DEM License (free and open)
     layers: [terrain]
   sentinel2:
     name: Copernicus Sentinel-2
@@ -67,22 +72,13 @@ datasets:
     update_frequency: periodic (per release)
     license: CC BY 4.0
     layers: [land_cover]
-  # No open bulk CWC flood-hazard GIS layer exists for Telangana (NRSC's Flood
-  # Hazard Zonation Atlas covers Bihar only; Bhuvan/NDEM's flood layers are
-  # login/VPN-gated viewers, not downloadable data — confirmed by research
-  # 2026-07-01). Kept here, unused by any connector, as a placeholder for if a
-  # real CWC feed becomes available; flood_hazard_class and
-  # within_flood_hazard_polygon are served by jrc_glofas_flood_hazard below.
-  cwc_flood:
-    name: CWC Flood Data
-    provider: Central Water Commission
-    purpose: Flood hazard zones, historical floods (not currently available in bulk)
-    source_url: https://cwc.gov.in/
-    crs: EPSG:4326
-    ttl: 1d
-    update_frequency: seasonal
-    license: Govt. of India
-    layers: [natural_hazard]
+  # No open bulk CWC/NRSC flood-hazard GIS layer exists for Telangana (NRSC's
+  # Flood Hazard Zonation Atlas covers Bihar only; Bhuvan/NDEM's flood layers
+  # are login/VPN-gated viewers, not downloadable data — confirmed by research
+  # 2026-07-01). The former "CWC Flood Data" / "NRSC Waterbody Database"
+  # placeholder entries were removed (Phase 10-C): the registry names only
+  # sources the runtime actually queries. Flood fields are served by
+  # jrc_glofas_flood_hazard below; waterbody fields by `openstreetmap`.
   jrc_glofas_flood_hazard:
     name: JRC Global River Flood Hazard Maps
     provider: EC JRC / Copernicus Emergency Management Service (GloFAS)
@@ -95,31 +91,36 @@ datasets:
     update_frequency: static (2024 release)
     license: JRC Open Data (available without restriction on use or distribution)
     layers: [natural_hazard]
-  # Kept as a placeholder for a possible future real NRSC feed; the
-  # nearest_waterbody_* fields are served from the OpenStreetMap-seeded
-  # waterbody table (see `openstreetmap` below), the honest current source.
-  nrsc_waterbodies:
-    name: NRSC Waterbody Database
-    provider: NRSC / ISRO
-    purpose: Surface water bodies (not currently available in bulk)
-    source_url: https://bhuvan.nrsc.gov.in/
-    crs: EPSG:4326
-    ttl: 90d
-    spatial_resolution: 30m
-    license: Bhuvan Open Data
-    layers: [natural_hazard]
-  nasa_firms:
-    name: NASA FIRMS
-    provider: NASA
+  # Active fire detections are sampled from the VIIRS VNP14A1 product via Earth
+  # Engine — the runtime source. (The SRS originally named "NASA FIRMS", the
+  # distribution portal for the same VIIRS instrument data; the registry names
+  # the exact product actually queried, Phase 10-C.)
+  viirs_fire:
+    name: VIIRS Active Fires (VNP14A1)
+    provider: NASA LP DAAC
+    version: v001
     purpose: Active fire detection
-    source_url: https://firms.modaps.eosdis.nasa.gov/
+    source_url: https://developers.google.com/earth-engine/datasets/catalog/NOAA_VIIRS_001_VNP14A1
     crs: EPSG:4326
     ttl: 1d
-    spatial_resolution: 375m
+    spatial_resolution: 500m
     temporal_resolution: daily
     update_frequency: daily
     license: NASA Open Data
     layers: [natural_hazard]
+  modis_vegetation:
+    name: MODIS Vegetation Indices (MOD13Q1)
+    provider: NASA LP DAAC
+    version: v061
+    purpose: Historical vegetation indices (NDVI baseline)
+    source_url: https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD13Q1
+    crs: EPSG:4326
+    ttl: 16d
+    spatial_resolution: 250m
+    temporal_resolution: 16-day
+    update_frequency: 16-day
+    license: NASA Open Data
+    layers: [land_cover]
   soi_admin:
     name: Survey of India Administrative Boundaries
     provider: Survey of India

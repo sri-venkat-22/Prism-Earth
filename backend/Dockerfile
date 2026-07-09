@@ -1,4 +1,4 @@
-# Prism Earth backend image (SRS §32). Python 3.12 + uv.
+# Terra backend image (SRS §32). Python 3.12 + uv.
 FROM python:3.12-slim AS base
 
 ENV PYTHONUNBUFFERED=1 \
@@ -25,7 +25,7 @@ COPY alembic.ini ./
 COPY migrations ./migrations
 
 ENV PATH="/app/.venv/bin:$PATH" \
-    PRISM_CONFIG_DIR=/configs
+    TERRA_CONFIG_DIR=/configs
 
 # Create a non-root user.
 RUN useradd --create-home --uid 10001 appuser && chown -R appuser:appuser /app

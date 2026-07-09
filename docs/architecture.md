@@ -1,11 +1,11 @@
 # Architecture Guide
 
-This guide describes how Prism Earth is structured (SRS §8, §11, §12) and how a
+This guide describes how Terra is structured (SRS §8, §11, §12) and how a
 request flows through the system.
 
 ## Principles
 
-Prism Earth follows Clean Architecture and SOLID (SRS §11.2, §35.1): business
+Terra follows Clean Architecture and SOLID (SRS §11.2, §35.1): business
 logic is separated from infrastructure, the **metadata catalog is the single
 source of truth**, and configuration lives in `configs/*.yaml` — never hardcoded.
 The deterministic Fetch spine contains no AI; the AI lives only in the Planner
@@ -63,5 +63,5 @@ region rules are always discovered at runtime from `/meta/*`.
 ## MCP server (SRS §34)
 
 `app/mcp/*` is a thin client over the REST API. AI agents call
-`prism_earth_fetch` / `prism_earth_ask`; the server forwards to the same
+`terra_fetch` / `terra_ask`; the server forwards to the same
 endpoints, preserving determinism, provenance, and citations.

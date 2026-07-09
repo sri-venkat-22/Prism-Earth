@@ -1,6 +1,6 @@
 # MCP Server & Authentication (Phase 7)
 
-Phase 7 exposes Prism Earth to AI clients over the **Model Context Protocol**
+Phase 7 exposes Terra to AI clients over the **Model Context Protocol**
 (SRS §34) and adds the **v1.1 authentication model** (SRS §13.20, §13.19).
 
 Two design principles from the SRS drive the shape of this:
@@ -10,7 +10,7 @@ Two design principles from the SRS drive the shape of this:
   Planner → Fetch Engine` (§34.2) — so provenance and citations are preserved
   end to end (§16.18) without any special code path.
 - **Auth is a gateway toggle (§13.20):** it is applied *without changing
-  endpoint contracts*. It ships **off by default** (`PRISM_AUTH_ENABLED=false`)
+  endpoint contracts*. It ships **off by default** (`TERRA_AUTH_ENABLED=false`)
   so metadata, `/fetch`, and `/ask` stay open for local dev and the browser UX.
   Turn it on for production.
 
@@ -20,7 +20,7 @@ Two design principles from the SRS drive the shape of this:
 
 ### What is protected
 
-| Endpoint | Auth when `PRISM_AUTH_ENABLED=true` |
+| Endpoint | Auth when `TERRA_AUTH_ENABLED=true` |
 | --- | --- |
 | `GET /api/v1/meta/*`, `GET /api/v1/health*` | **Public** |
 | `GET /.well-known/oauth-*` | **Public** (discovery) |
@@ -37,11 +37,14 @@ the limit returns `429` with `Retry-After`.
 In `backend/.env`:
 
 ```bash
-PRISM_AUTH_ENABLED=true
-PRISM_AUTH_ADMIN_TOKEN=some-long-random-admin-secret
+TERRA_AUTH_ENABLED=true
+TERRA_AUTH_ADMIN_TOKEN=some-long-random-admin-secret
 # optional
-PRISM_AUTH_DEFAULT_RATE_LIMIT_PER_MINUTE=120
-PRISM_AUTH_ISSUER_URL=http://localhost:8000
+TERRA_AUTH_DEFAULT_RATE_LIMIT_PER_MINUTE=120
+TERRA_AUTH_ISSUER_URL=http://localhost:8000
+# OAuth trust model (see "OAuth trust model" below)
+TERRA_AUTH_OPEN_CLIENT_REGISTRATION=true
+TERRA_AUTH_SELF_REGISTERED_RATE_LIMIT_PER_MINUTE=30
 ```
 
 Run the migration once so the token tables exist:
@@ -56,7 +59,7 @@ cd backend && .venv/bin/alembic upgrade head
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/auth/tokens \
-  -H "Authorization: Bearer $PRISM_AUTH_ADMIN_TOKEN" \
+  -H "Authorization: Bearer $TERRA_AUTH_ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"name":"cli-laptop","scopes":["fetch","ask"]}'
 # → {"id":"...","token":"pe_XXXX...","prefix":"pe_XXXX","scopes":["ask","fetch"], ...}
@@ -96,6 +99,32 @@ List / revoke: `GET /api/v1/auth/tokens`, `DELETE /api/v1/auth/tokens/{id}` (bot
 > MCP flow. Consent is auto-granted (there is no interactive login UI in v1);
 > the subject of an OAuth token is the client itself.
 
+### OAuth trust model (12-B)
+
+Because RFC 7591 registration is unauthenticated and consent is auto-granted,
+an open registration endpoint means anyone who can reach the API can mint
+`fetch`/`ask` tokens — authentication *identifies and meters* callers, it does
+not by itself gate access. The deployment chooses the model:
+
+- **Open (default, `TERRA_AUTH_OPEN_CLIENT_REGISTRATION=true`)** — the standard
+  MCP experience: Claude Desktop / Cursor self-register and connect with no
+  operator step. Self-registered clients are recorded as **low-trust**: every
+  token they mint carries the reduced per-token budget
+  (`TERRA_AUTH_SELF_REGISTERED_RATE_LIMIT_PER_MINUTE`, default 30/min) instead
+  of the deployment default. Registering with a valid admin credential (even
+  while open) marks the client operator-vetted with default budgets.
+- **Closed (`TERRA_AUTH_OPEN_CLIENT_REGISTRATION=false`)** — `/oauth/register`
+  requires the admin credential; anonymous registration returns 401. Every
+  OAuth client that exists was authorized by an operator, so "authenticated"
+  also means "authorized". Use this when the API is exposed beyond a trusted
+  network and MCP access should be provisioned, not self-served.
+
+In both modes, `redirect_uri` is validated **unconditionally**: a client using
+the `authorization_code` grant must register at least one redirect URI
+(rejected at registration otherwise, `invalid_client_metadata`), the authorize
+endpoint only redirects to an exactly-matching registered URI, and a client not
+registered for the grant is refused (`unauthorized_client`).
+
 ---
 
 ## MCP server
@@ -116,20 +145,20 @@ Configuration (env or CLI flags):
 
 | Env | Flag | Default |
 | --- | --- | --- |
-| `PRISM_MCP_API_BASE_URL` | `--base-url` | `http://localhost:8000/api/v1` |
-| `PRISM_MCP_API_TOKEN` | `--token` | *(none)* |
-| `PRISM_MCP_TRANSPORT` | `--transport` | `stdio` |
-| `PRISM_MCP_HTTP_HOST` / `PRISM_MCP_HTTP_PORT` | `--host` / `--port` | `127.0.0.1` / `8765` |
+| `TERRA_MCP_API_BASE_URL` | `--base-url` | `http://localhost:8000/api/v1` |
+| `TERRA_MCP_API_TOKEN` | `--token` | *(none)* |
+| `TERRA_MCP_TRANSPORT` | `--transport` | `stdio` |
+| `TERRA_MCP_HTTP_HOST` / `TERRA_MCP_HTTP_PORT` | `--host` / `--port` | `127.0.0.1` / `8765` |
 
-When auth is enabled, set `--token` (or `PRISM_MCP_API_TOKEN`) to a token that
+When auth is enabled, set `--token` (or `TERRA_MCP_API_TOKEN`) to a token that
 has the `fetch` and `ask` scopes.
 
 ### Tools (SRS §34.1)
 
-- `prism_earth_fetch(lat, lng, fields?, preset?)` — deterministic cited values.
-- `prism_earth_ask(lat, lng, question)` — natural-language cited answer + trace.
-- `prism_earth_meta_fields(layer?, lifecycle?, available?)` — the field catalog.
-- `prism_earth_meta_layers()` / `prism_earth_meta_presets()` — layers / presets.
+- `terra_fetch(lat, lng, fields?, preset?)` — deterministic cited values.
+- `terra_ask(lat, lng, question)` — natural-language cited answer + trace.
+- `terra_meta_fields(layer?, lifecycle?, available?)` — the field catalog.
+- `terra_meta_layers()` / `terra_meta_presets()` — layers / presets.
 
 Every tool returns the REST API's JSON **verbatim**, so `citations` and
 `provenance` reach the agent unchanged (§16.18).
@@ -141,13 +170,13 @@ Add to the client's `mcpServers` config (adjust the absolute path):
 ```json
 {
   "mcpServers": {
-    "prism-earth": {
+    "terra": {
       "command": "/absolute/path/to/backend/.venv/bin/python",
       "args": ["-m", "app.mcp"],
       "env": {
         "PYTHONPATH": "/absolute/path/to/backend",
-        "PRISM_MCP_API_BASE_URL": "http://localhost:8000/api/v1",
-        "PRISM_MCP_API_TOKEN": "pe_XXXX..."
+        "TERRA_MCP_API_BASE_URL": "http://localhost:8000/api/v1",
+        "TERRA_MCP_API_TOKEN": "pe_XXXX..."
       }
     }
   }

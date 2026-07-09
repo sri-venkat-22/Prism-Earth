@@ -1,6 +1,6 @@
 # API Reference
 
-Prism Earth exposes a versioned REST API under `/api/v1` (SRS §13). The API is
+Terra exposes a versioned REST API under `/api/v1` (SRS §13). The API is
 self-documenting: an OpenAPI 3 spec is generated automatically, with Swagger UI
 and ReDoc (SRS §13.22).
 
@@ -27,7 +27,7 @@ Export the spec to a file with `python -m scripts.export_openapi` (writes
 | GET | `/api/v1/ready` \| `/live` | public | Readiness / liveness probes |
 | GET | `/metrics` | internal | Prometheus metrics |
 
-¹ Only when `PRISM_AUTH_ENABLED=true` (SRS §13.20).
+¹ Only when `TERRA_AUTH_ENABLED=true` (SRS §13.20).
 
 ## `POST /api/v1/fetch`
 

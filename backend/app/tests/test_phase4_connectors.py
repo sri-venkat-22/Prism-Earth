@@ -106,7 +106,14 @@ async def test_natural_hazard_mixes_vector_and_raster() -> None:
 
     assert results["flood_hazard_class"].value == "moderate"
     assert results["flood_hazard_class"].dataset == "JRC Global River Flood Hazard Maps"
+    # The class is Terra's own banding of GloFAS depths — the provenance
+    # qualifier makes that machine-readable, never attributed to JRC (§16.4).
+    assert results["flood_hazard_class"].derivation is not None
+    assert results["flood_hazard_class"].derivation.startswith("Terra")
     assert results["within_flood_hazard_polygon"].value is True
+    assert results["within_flood_hazard_polygon"].derivation is not None
+    # Directly-sampled values carry no derivation qualifier.
+    assert results["surface_water_permanence_pct"].derivation is None
     assert results["nearest_waterbody_distance_m"].dataset == "OpenStreetMap"
     assert results["surface_water_permanence_pct"].dataset == "JRC Global Surface Water"
     assert results["active_fire_count_10km_24h"].value == 0

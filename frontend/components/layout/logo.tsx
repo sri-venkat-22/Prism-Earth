@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** The Prism Earth wordmark: an ink prism glyph refracting a single accent ray. */
+/** The Terra wordmark: a triangular glyph refracting a single accent ray. */
 export function Logo({ className, withText = true }: { className?: string; withText?: boolean }) {
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
@@ -8,7 +8,7 @@ export function Logo({ className, withText = true }: { className?: string; withT
         viewBox="0 0 32 32"
         className="h-6 w-6 shrink-0"
         role="img"
-        aria-label="Prism Earth"
+        aria-label="Terra"
         fill="none"
       >
         <path
@@ -24,7 +24,7 @@ export function Logo({ className, withText = true }: { className?: string; withT
         <path d="M18 18.2 L30 20.5" stroke="hsl(var(--brand-3))" strokeWidth="1.4" />
       </svg>
       {withText && (
-        <span className="font-display text-[15px] font-semibold tracking-tight">Prism Earth</span>
+        <span className="font-display text-[15px] font-semibold tracking-tight">Terra</span>
       )}
     </span>
   );

@@ -1,4 +1,4 @@
-"""Alembic environment (async) for Prism Earth (SRS §22).
+"""Alembic environment (async) for Terra (SRS §22).
 
 No migrations exist in Phase 0. This wiring lets ``alembic revision
 --autogenerate`` work from Phase 2 onward by pointing at the application's

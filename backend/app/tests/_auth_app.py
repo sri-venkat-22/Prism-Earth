@@ -31,12 +31,14 @@ def auth_client(
     *,
     admin_token: str | None = ADMIN_TOKEN,
     default_rate_limit: int = 1000,
+    **settings_overrides: object,
 ) -> Iterator[tuple[TestClient, InMemoryTokenStore, InMemoryClientStore]]:
     settings = Settings(
         auth_enabled=True,
         auth_admin_token=admin_token,
         auth_default_rate_limit_per_minute=default_rate_limit,
         auth_issuer_url="http://testserver",
+        **settings_overrides,  # type: ignore[arg-type]
     )
     app = create_app(settings)
 

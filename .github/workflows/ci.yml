@@ -1,4 +1,4 @@
-# Prism Earth CI (SRS §31.1, §30.4).
+# Terra CI (SRS §31.1, §30.4).
 #
 # Pipeline flow (§31.1): build → lint → unit tests → integration tests →
 # security scan → Docker build. Every push and pull request runs the full gate;
@@ -156,7 +156,7 @@ jobs:
         with:
           context: ./backend
           push: false
-          tags: prism-earth-backend:ci
+          tags: terra-backend:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Build frontend image
@@ -164,7 +164,7 @@ jobs:
         with:
           context: ./frontend
           push: false
-          tags: prism-earth-frontend:ci
+          tags: terra-frontend:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

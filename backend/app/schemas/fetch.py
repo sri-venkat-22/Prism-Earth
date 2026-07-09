@@ -97,6 +97,14 @@ class ProvenanceObject(BaseModel):
     confidence: Confidence
     null_meaning: str | None = None
     reason: str | None = Field(None, description="Why the value is null/failed (SRS §17.6)")
+    derivation: str | None = Field(
+        None,
+        description=(
+            "Present when the value is a Terra derivation from the cited "
+            "dataset (e.g. our banding of GloFAS return-period depths), not a "
+            "value the dataset itself publishes (SRS §16.4)."
+        ),
+    )
 
 
 class Citation(BaseModel):

@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* ========================================================================== */
-/*  Prism Earth design tokens                                                  */
+/*  Terra design tokens                                                  */
 /*  Warm, editorial, light — modeled on mireye.com. Single theme (no dark).    */
 /*  Palette: cream #F8F6EE · ink #16140F · warm grays · muted jewel accents.    */
 /* ========================================================================== */
@@ -55,6 +55,9 @@
     --layer-admin: 172 39% 30%; /* slate teal */
     --layer-cadastral: 57 37% 32%; /* olive */
     --layer-built: 329 30% 42%; /* plum */
+
+    /* Terminal-window surface — sits between --card and white */
+    --terminal-surface: 60 27% 98%; /* #fbfbf8 */
 
     /* Radii scale */
     --radius-sm: 0.375rem;
@@ -148,7 +151,7 @@
   .terminal {
     border: 1px solid hsl(var(--border));
     border-radius: var(--radius-lg);
-    background: #fbfbf8;
+    background: hsl(var(--terminal-surface));
     box-shadow:
       0 1px 0 hsl(var(--foreground) / 0.02),
       0 24px 60px -32px hsl(var(--foreground) / 0.28);

@@ -40,17 +40,27 @@ def test_valid_production_has_no_problems() -> None:
 
 def test_production_requires_auth_enabled() -> None:
     problems = Settings(app_env="production", auth_enabled=False).validate_runtime()
-    assert any("PRISM_AUTH_ENABLED" in p for p in problems)
+    assert any("TERRA_AUTH_ENABLED" in p for p in problems)
 
 
 def test_production_requires_admin_token_when_auth_on() -> None:
     problems = _valid_prod(auth_admin_token=None).validate_runtime()
-    assert any("PRISM_AUTH_ADMIN_TOKEN" in p for p in problems)
+    assert any("TERRA_AUTH_ADMIN_TOKEN" in p for p in problems)
 
 
 def test_production_rejects_wildcard_cors() -> None:
     problems = _valid_prod(cors_origins=["*"]).validate_runtime()
     assert any("CORS" in p and "'*'" in p for p in problems)
+
+
+def test_production_rejects_dev_fixtures() -> None:
+    """Synthetic seed data must never be enabled in production (SRS §16.4)."""
+    problems = _valid_prod(enable_dev_fixtures=True).validate_runtime()
+    assert any("TERRA_ENABLE_DEV_FIXTURES" in p for p in problems)
+
+
+def test_dev_fixtures_allowed_outside_production() -> None:
+    assert Settings(enable_dev_fixtures=True).validate_runtime() == []
 
 
 def test_wildcard_with_credentials_invalid_in_any_env() -> None:
@@ -92,4 +102,4 @@ def test_ready_reports_misconfiguration(
     body = resp.json()
     assert body["status"] == "not_ready"
     assert body["checks"]["config"]["status"] == "misconfigured"
-    assert "PRISM_AUTH_ENABLED" in body["checks"]["config"]["detail"]
+    assert "TERRA_AUTH_ENABLED" in body["checks"]["config"]["detail"]

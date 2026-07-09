@@ -185,7 +185,17 @@ class AuthService:
         grant_types: tuple[str, ...],
         scopes: frozenset[str],
         token_endpoint_auth_method: str,
+        self_registered: bool = True,
     ) -> tuple[OAuthClientRecord, str | None]:
+        effective_grants = grant_types or ("authorization_code", "refresh_token")
+        # RFC 7591 metadata validation: the authorization-code grant redirects
+        # the browser, so a client using it MUST pin ≥1 redirect URI up front —
+        # the authorize endpoint validates against this list unconditionally.
+        if "authorization_code" in effective_grants and not redirect_uris:
+            raise oauth.OAuthError(
+                "invalid_client_metadata",
+                "authorization_code clients must register at least one redirect_uri.",
+            )
         client_id = "mcp_" + secrets.token_urlsafe(16)
         secret: str | None = None
         secret_hash: str | None = None
@@ -196,10 +206,11 @@ class AuthService:
             client_id=client_id,
             name=name,
             redirect_uris=redirect_uris,
-            grant_types=grant_types or ("authorization_code", "refresh_token"),
+            grant_types=effective_grants,
             scopes=scopes,
             token_endpoint_auth_method=token_endpoint_auth_method,
             client_secret_hash=secret_hash,
+            self_registered=self_registered,
         )
         await self._clients.create(record)
         return record, secret
@@ -216,7 +227,13 @@ class AuthService:
         client = await self._clients.get(client_id)
         if client is None:
             raise oauth.OAuthError("invalid_request", "Unknown client_id.")
-        if client.redirect_uris and redirect_uri not in client.redirect_uris:
+        if "authorization_code" not in client.grant_types:
+            raise oauth.OAuthError(
+                "unauthorized_client", "Client is not registered for the authorization_code grant."
+            )
+        # Unconditional: a client with no registered URIs can never receive an
+        # authorization code, and the URI must match exactly (12-B).
+        if redirect_uri not in client.redirect_uris:
             raise oauth.OAuthError("invalid_request", "redirect_uri is not registered.")
         code = secrets.token_urlsafe(32)
         await self._ephemeral.put(
@@ -284,17 +301,31 @@ class AuthService:
             subject=client_id,
             scopes=granted or oauth.DEFAULT_SCOPES,
             expires_in=_OAUTH_ACCESS_TTL,
+            rate_limit_per_minute=self._client_rate_limit(client),
         )
         return _token_response(issued.token, issued.record.scopes)
+
+    def _client_rate_limit(self, client: OAuthClientRecord | None) -> int | None:
+        """The per-token budget for a client's tokens (§13.20 trust model).
+
+        Self-registered clients (open RFC 7591 registration, auto-consent) are
+        the low-trust MCP surface: their tokens are metered with the reduced
+        budget. Admin-registered clients use the deployment default (``None``).
+        """
+        if client is not None and client.self_registered:
+            return self._settings.auth_self_registered_rate_limit_per_minute
+        return None
 
     async def _issue_oauth_tokens(
         self, *, subject: str, client_id: str, scopes: frozenset[str]
     ) -> dict[str, object]:
+        client = await self._clients.get(client_id)
         issued = await self.issue_token(
             name=f"oauth:{client_id}",
             subject=subject,
             scopes=scopes or oauth.DEFAULT_SCOPES,
             expires_in=_OAUTH_ACCESS_TTL,
+            rate_limit_per_minute=self._client_rate_limit(client),
         )
         refresh_token = secrets.token_urlsafe(32)
         await self._ephemeral.put(

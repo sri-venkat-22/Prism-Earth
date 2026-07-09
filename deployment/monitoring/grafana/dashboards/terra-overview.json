@@ -2,8 +2,8 @@
   "annotations": { "list": [] },
   "editable": true,
   "schemaVersion": 39,
-  "title": "Prism Earth — API Overview",
-  "tags": ["prism-earth"],
+  "title": "Terra — API Overview",
+  "tags": ["terra"],
   "timezone": "browser",
   "time": { "from": "now-1h", "to": "now" },
   "refresh": "30s",
@@ -18,7 +18,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(prism_http_requests_total[5m])) by (route)",
+          "expr": "sum(rate(terra_http_requests_total[5m])) by (route)",
           "legendFormat": "{{route}}"
         }
       ]
@@ -33,7 +33,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "histogram_quantile(0.95, sum(rate(prism_http_request_duration_seconds_bucket[5m])) by (le, route))",
+          "expr": "histogram_quantile(0.95, sum(rate(terra_http_request_duration_seconds_bucket[5m])) by (le, route))",
           "legendFormat": "{{route}}"
         }
       ]
@@ -49,7 +49,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(prism_http_requests_total{status=~\"5..\"}[5m])) / clamp_min(sum(rate(prism_http_requests_total[5m])), 1)"
+          "expr": "sum(rate(terra_http_requests_total{status=~\"5..\"}[5m])) / clamp_min(sum(rate(terra_http_requests_total[5m])), 1)"
         }
       ]
     },
@@ -64,7 +64,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(prism_cache_events_total{result=\"hit\"}[5m])) / clamp_min(sum(rate(prism_cache_events_total[5m])), 1)"
+          "expr": "sum(rate(terra_cache_events_total{result=\"hit\"}[5m])) / clamp_min(sum(rate(terra_cache_events_total[5m])), 1)"
         }
       ]
     },
@@ -78,7 +78,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "prism_connector_health",
+          "expr": "terra_connector_health",
           "legendFormat": "{{connector}}"
         }
       ]
@@ -93,7 +93,7 @@
         {
           "refId": "A",
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "{container=\"prism-backend\"}"
+          "expr": "{container=\"terra-backend\"}"
         }
       ]
     }

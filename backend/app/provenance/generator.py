@@ -50,6 +50,10 @@ class FieldProvenance(BaseModel):
     ttl: str | None
     null_meaning: str | None = None
     reason: NullReason | None = None
+    # Set when the value is Terra's own derivation from the cited dataset
+    # (e.g. GloFAS depth-band → hazard-class banding), so the derived nature is
+    # machine-readable, never attributed to the upstream provider (SRS §16.4).
+    derivation: str | None = None
 
     @property
     def succeeded(self) -> bool:
@@ -95,12 +99,16 @@ class ProvenanceGenerator:
             dataset_version=meta.version if meta else None,
             source_url=meta.source_url if meta else field.source_url,
             license=meta.license if meta else None,
-            retrieved_at=retrieved_at,
+            # A cache-served result carries the time it was *actually* pulled
+            # from the source; only a fresh result takes the response time
+            # (SRS §17.3, §23 — a cached value never claims a new retrieval).
+            retrieved_at=result.retrieved_at or retrieved_at,
             # Per-field catalog TTL is authoritative for caching (SRS §15.18);
             # fall back to the dataset's registry TTL.
             ttl=field.dataset_ttl or (meta.ttl if meta else None),
             null_meaning=null_meaning,
             reason=result.null_reason,
+            derivation=result.derivation,
         )
 
     def generate_all(

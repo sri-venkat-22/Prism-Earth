@@ -22,7 +22,9 @@ export default function DashboardPage() {
   const [region, setRegion] = useState<SelectedRegion | null>(null);
 
   const layers = useLayers();
-  const layerFields = useFields({ layer: activeLayer });
+  // available:true — planned fields are never selectable, and /fetch rejects a
+  // selection that includes them (SRS §11.6).
+  const layerFields = useFields({ layer: activeLayer, available: true });
 
   const { counts, names, purpose } = useMemo(() => {
     const list = layers.data?.layers ?? [];
@@ -69,6 +71,9 @@ export default function DashboardPage() {
         region={region}
         layer={activeLayer}
         fields={fieldIds}
+        fieldsLoading={layerFields.isLoading}
+        fieldsError={layerFields.isError ? layerFields.error : null}
+        onRetryFields={() => layerFields.refetch()}
         onClose={() => setRegion(null)}
       />
     </div>

@@ -1,8 +1,8 @@
-# Prism Earth
+# Terra
 
 **Deterministic, citation-backed geospatial intelligence for India.**
 
-Prism Earth answers questions about any point in India — "Is this area suitable
+Terra answers questions about any point in India — "Is this area suitable
 for a solar farm?", "What is the flood risk here?" — by planning which catalog
 fields are needed, deterministically fetching them from real datasets, and
 synthesizing a cited answer. Every returned field carries full provenance, and

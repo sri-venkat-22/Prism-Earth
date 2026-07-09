@@ -21,11 +21,17 @@ export function RegionDetail({
   region,
   layer,
   fields,
+  fieldsLoading = false,
+  fieldsError = null,
+  onRetryFields,
   onClose,
 }: {
   region: SelectedRegion | null;
   layer: Layer;
   fields: string[];
+  fieldsLoading?: boolean;
+  fieldsError?: unknown;
+  onRetryFields?: () => void;
   onClose: () => void;
 }) {
   const fetchQ = useFetchQuery();
@@ -52,7 +58,7 @@ export function RegionDetail({
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: 24, opacity: 0 }}
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          className="scrollbar-thin absolute right-3 top-3 z-20 flex max-h-[calc(100%-1.5rem)] w-[92vw] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xl sm:right-4 sm:top-4 sm:w-[380px]"
+          className="scrollbar-thin absolute right-3 top-3 z-20 flex max-h-[calc(100%-1.5rem)] w-[92vw] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-md sm:right-4 sm:top-4 sm:w-[380px]"
         >
           {/* Header */}
           <div className="flex items-start justify-between gap-3 border-b border-border p-4">
@@ -79,6 +85,26 @@ export function RegionDetail({
 
           {/* Body */}
           <div className="scrollbar-thin flex-1 overflow-y-auto p-4">
+            {/* The live fetch never ran: the field catalog is still loading,
+                failed to load, or has no fetchable fields for this layer. */}
+            {fields.length === 0 && fieldsLoading && (
+              <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading the field catalog…
+              </div>
+            )}
+            {fields.length === 0 && !fieldsLoading && fieldsError != null && (
+              <ErrorState
+                error={fieldsError}
+                onRetry={onRetryFields}
+                title="Couldn't load the field catalog"
+              />
+            )}
+            {fields.length === 0 && !fieldsLoading && fieldsError == null && (
+              <p className="py-8 text-sm text-muted-foreground">
+                No fetchable fields in this layer yet.
+              </p>
+            )}
+
             {fetchQ.isPending && (
               <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" /> Fetching live values…

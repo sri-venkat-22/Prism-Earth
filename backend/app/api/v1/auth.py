@@ -22,7 +22,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 
 from app.auth import oauth
-from app.auth.dependencies import get_auth_service, require_admin
+from app.auth.dependencies import gate_client_registration, get_auth_service, require_admin
 from app.auth.oauth import DEVICE_CODE_GRANT, SUPPORTED_SCOPES, OAuthError
 from app.auth.schemas import (
     ClientRegistrationRequest,
@@ -170,16 +170,30 @@ async def device_approve(
     summary="Dynamic client registration (RFC 7591, SRS §13.20)",
 )
 async def register_client(
-    payload: ClientRegistrationRequest, service: ServiceDep
-) -> ClientRegistrationResponse:
+    payload: ClientRegistrationRequest, request: Request, service: ServiceDep
+) -> ClientRegistrationResponse | JSONResponse:
+    """Register an OAuth client under the §13.20 trust model (audit 12-B).
+
+    With ``auth_open_client_registration=true`` (default) registration is
+    anonymous per RFC 7591 — the standard MCP flow — and the client is recorded
+    as *self-registered*: its tokens carry the reduced low-trust rate budget.
+    With it false, a valid admin credential is required and the client is
+    operator-vetted. An admin credential presented while registration is open
+    also marks the client vetted.
+    """
+    admin = await gate_client_registration(request)
     scopes = _clean_scopes(payload.scope.split() if payload.scope else [])
-    record, secret = await service.register_client(
-        name=payload.client_name,
-        redirect_uris=tuple(payload.redirect_uris),
-        grant_types=tuple(payload.grant_types),
-        scopes=scopes,
-        token_endpoint_auth_method=payload.token_endpoint_auth_method,
-    )
+    try:
+        record, secret = await service.register_client(
+            name=payload.client_name,
+            redirect_uris=tuple(payload.redirect_uris),
+            grant_types=tuple(payload.grant_types),
+            scopes=scopes,
+            token_endpoint_auth_method=payload.token_endpoint_auth_method,
+            self_registered=not admin,
+        )
+    except OAuthError as exc:  # RFC 7591 error body (invalid_client_metadata)
+        return _oauth_error(exc)
     return ClientRegistrationResponse(
         client_id=record.client_id,
         client_secret=secret,
@@ -220,7 +234,8 @@ async def authorize(
             code_challenge_method=code_challenge_method,
         )
     except OAuthError as exc:
-        # redirect_uri is not validated yet — never redirect to an unverified URI.
+        # Covers unknown client, wrong grant, and an unregistered redirect_uri
+        # (validated unconditionally) — never redirect to an unverified URI.
         return _oauth_error(exc)
     separator = "&" if "?" in redirect_uri else "?"
     location = f"{redirect_uri}{separator}code={code}"

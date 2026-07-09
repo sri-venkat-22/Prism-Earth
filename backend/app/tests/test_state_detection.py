@@ -2,7 +2,7 @@
 
 The hierarchy-assembly logic is tested with a fake session (no database). A live
 PostGIS check is provided as an opt-in integration test guarded by
-``PRISM_TEST_DATABASE_URL`` (a migrated + seeded database).
+``TERRA_TEST_DATABASE_URL`` (a migrated + seeded database).
 """
 
 from __future__ import annotations
@@ -101,13 +101,13 @@ async def test_partial_hierarchy_stops_at_state() -> None:
 # Opt-in integration test against a live, seeded PostGIS database.            #
 # --------------------------------------------------------------------------- #
 @pytest.mark.skipif(
-    not os.getenv("PRISM_TEST_DATABASE_URL"),
-    reason="Set PRISM_TEST_DATABASE_URL to a migrated+seeded DB to run the live check.",
+    not os.getenv("TERRA_TEST_DATABASE_URL"),
+    reason="Set TERRA_TEST_DATABASE_URL to a migrated+seeded DB to run the live check.",
 )
 async def test_resolves_hyderabad_against_postgis() -> None:
     from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-    engine = create_async_engine(os.environ["PRISM_TEST_DATABASE_URL"])
+    engine = create_async_engine(os.environ["TERRA_TEST_DATABASE_URL"])
     try:
         async with async_sessionmaker(engine)() as session:
             ctx = await StateDetectionService(session).resolve(17.385, 78.486)

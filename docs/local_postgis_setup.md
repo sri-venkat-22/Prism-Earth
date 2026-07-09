@@ -18,8 +18,8 @@ export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
 ## Create the role and database
 
 ```bash
-psql -d postgres -c "CREATE ROLE prism LOGIN PASSWORD 'prism' SUPERUSER;"
-createdb -O prism prism_earth
+psql -d postgres -c "CREATE ROLE terra LOGIN PASSWORD 'terra' SUPERUSER;"
+createdb -O terra terra
 ```
 
 `SUPERUSER` is for local dev only — `CREATE EXTENSION postgis` needs it. In
@@ -28,14 +28,14 @@ least-privilege role (SRS §20.11).
 
 ## Point the backend at it
 
-The backend reads `PRISM_POSTGRES_*` (SRS §9). For local runs:
+The backend reads `TERRA_POSTGRES_*` (SRS §9). For local runs:
 
 ```bash
-export PRISM_POSTGRES_HOST=localhost
-export PRISM_POSTGRES_PORT=5432
-export PRISM_POSTGRES_USER=prism
-export PRISM_POSTGRES_PASSWORD=prism
-export PRISM_POSTGRES_DB=prism_earth
+export TERRA_POSTGRES_HOST=localhost
+export TERRA_POSTGRES_PORT=5432
+export TERRA_POSTGRES_USER=terra
+export TERRA_POSTGRES_PASSWORD=terra
+export TERRA_POSTGRES_DB=terra
 ```
 
 (or copy `backend/.env.example` to `backend/.env` and edit it.)
@@ -45,6 +45,9 @@ export PRISM_POSTGRES_DB=prism_earth
 ```bash
 cd backend && alembic upgrade head          # creates schemas, tables, GIST indexes (SRS §20.3–20.6, §22.3)
 cd .. && python scripts/seed_telangana.py   # loads the Telangana fixtures (SRS §24.4)
+# Optional: also seed the hand-authored sample cadastral parcel (dev-only,
+# non-authoritative demo data — never seeded in production):
+#   TERRA_ENABLE_DEV_FIXTURES=true python scripts/seed_telangana.py
 
 python scripts/resolve_point.py 17.385 78.486   # → Telangana → Hyderabad → Khairatabad …
 python scripts/resolve_point.py 19.07 72.87      # → outside Telangana (flagged)
@@ -53,14 +56,14 @@ python scripts/resolve_point.py 19.07 72.87      # → outside Telangana (flagge
 ## Inspect the schema
 
 ```bash
-psql -d prism_earth -c "\dn"                              # 8 logical schemas
-psql -d prism_earth -c "SELECT f_table_schema, f_table_name, srid, type FROM geometry_columns ORDER BY 1,2;"
-psql -d prism_earth -c "SELECT schemaname, indexname FROM pg_indexes WHERE indexdef ILIKE '%USING gist%';"
+psql -d terra -c "\dn"                              # 8 logical schemas
+psql -d terra -c "SELECT f_table_schema, f_table_name, srid, type FROM geometry_columns ORDER BY 1,2;"
+psql -d terra -c "SELECT schemaname, indexname FROM pg_indexes WHERE indexdef ILIKE '%USING gist%';"
 ```
 
 ## Run the state-detection integration test
 
 ```bash
-export PRISM_TEST_DATABASE_URL="postgresql+asyncpg://prism:prism@localhost:5432/prism_earth"
+export TERRA_TEST_DATABASE_URL="postgresql+asyncpg://terra:terra@localhost:5432/terra"
 cd backend && pytest app/tests/test_state_detection.py -q   # runs the live PostGIS check
 ```

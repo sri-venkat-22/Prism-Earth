@@ -15,11 +15,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Response, status
 
-from app.connectors import build_connector_registry
+from app.connectors import get_default_connector_registry
 from app.core.config import Settings, get_settings
 from app.core.database import ping_database
 from app.core.redis import ping_redis
-from app.metadata.catalog import get_catalog
 from app.observability.metrics import record_connector_health
 from app.schemas.common import (
     ComponentStatus,
@@ -36,7 +35,7 @@ router = APIRouter(tags=["health"])
 
 def _connectors_status() -> ComponentStatus:
     """Summarize registered-connector status for the top-level health payload."""
-    registry = build_connector_registry(get_catalog())
+    registry = get_default_connector_registry()
     count = len(registry.connectors())
     return ComponentStatus(status="ok", detail=f"{count} connectors registered (SRS §18.10)")
 
@@ -47,7 +46,7 @@ def _earth_engine_status(settings: Settings) -> ComponentStatus:
         return ComponentStatus(status="ok", detail="Service account configured")
     return ComponentStatus(
         status="not_configured",
-        detail="Set PRISM_EARTH_ENGINE_SERVICE_ACCOUNT and PRISM_EARTH_ENGINE_KEY_FILE (SRS §19.3)",
+        detail="Set TERRA_EARTH_ENGINE_SERVICE_ACCOUNT and TERRA_EARTH_ENGINE_KEY_FILE (SRS §19.3)",
     )
 
 
@@ -86,7 +85,7 @@ async def connectors_health() -> ConnectorsHealthResponse:
     fields it can serve. Always ``200`` — a degraded connector is reported, not
     raised, so callers can see the whole fleet's state at a glance.
     """
-    registry = build_connector_registry(get_catalog())
+    registry = get_default_connector_registry()
     connectors: list[ConnectorHealthObject] = []
     for connector in registry.connectors():
         health_report = await connector.health()

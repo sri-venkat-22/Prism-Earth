@@ -1,6 +1,6 @@
 "use client";
 
-import maplibregl, { type Map as MLMap, type StyleSpecification } from "maplibre-gl";
+import maplibregl, { type Map as MLMap } from "maplibre-gl";
 import { useEffect, useRef } from "react";
 
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -10,33 +10,21 @@ export interface SelectedRegion {
   centroid: [number, number];
 }
 
-// Keyless light raster basemap (CARTO positron) — no token required. Muted to sit
-// under the warm cream chrome.
-const STYLE: StyleSpecification = {
-  version: 8,
-  glyphs: "https://fonts.openmaptiles.org/{fontstack}/{range}.pbf",
-  sources: {
-    carto: {
-      type: "raster",
-      tiles: [
-        "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-        "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-        "https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-      ],
-      tileSize: 256,
-      attribution: "© OpenStreetMap contributors © CARTO",
-    },
-  },
-  layers: [
-    { id: "bg", type: "background", paint: { "background-color": "#F8F6EE" } },
-    {
-      id: "carto",
-      type: "raster",
-      source: "carto",
-      paint: { "raster-opacity": 0.85, "raster-saturation": -0.35 },
-    },
-  ],
-};
+// Keyless OpenFreeMap "Positron" vector style (OSM data, OpenMapTiles schema).
+// Free for commercial use, no registration/API key, and it serves its own
+// glyphs — including the "Noto Sans Regular" stack the district labels use.
+// (CARTO's hosted basemap tiles require an enterprise license for commercial
+// products, so they are deliberately not used here.)
+const STYLE_URL = "https://tiles.openfreemap.org/styles/positron";
+
+// The hosted style injects its own "OpenFreeMap © OpenMapTiles Data from
+// OpenStreetMap" credit at runtime; only the Survey of India credit for the
+// district overlay served from /public needs attaching here.
+const ATTRIBUTION = "District boundaries © Survey of India";
+
+// Warm the basemap to the app's cream background so the map sits inside the
+// paper chrome instead of reading as a cold gray artifact.
+const CREAM_BG = "#F8F6EE";
 
 const TELANGANA_CENTER: [number, number] = [79.1, 17.9];
 const TELANGANA_BOUNDS: [[number, number], [number, number]] = [
@@ -151,13 +139,16 @@ export default function MapCanvas({
     if (!containerRef.current || mapRef.current) return;
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: STYLE,
+      style: STYLE_URL,
       center: TELANGANA_CENTER,
       zoom: 6.4,
       minZoom: 5.5,
       maxZoom: 11,
       maxBounds: TELANGANA_BOUNDS,
-      attributionControl: { compact: true },
+      // No `compact` override: MapLibre keeps the attribution text visible on
+      // wide viewports (per OSM attribution guidance) and collapses it only on
+      // small screens.
+      attributionControl: { customAttribution: ATTRIBUTION },
       dragRotate: false,
       pitchWithRotate: false,
       canvasContextAttributes: { preserveDrawingBuffer: true },
@@ -166,6 +157,9 @@ export default function MapCanvas({
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
 
     const init = () => {
+      if (map.getLayer("background")) {
+        map.setPaintProperty("background", "background-color", CREAM_BG);
+      }
       addDistrictLayers(map, accentRef.current, (r) => onSelectRef.current(r));
       loadedRef.current = true;
     };

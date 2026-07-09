@@ -7,7 +7,7 @@ Loads the committed GeoJSON boundary/hazard/infrastructure fixtures from
 ``metadata`` registry tables (SRS §22.3). Repeatable: by default it truncates the
 seed-owned tables and reloads, so re-running is deterministic.
 
-Usage (from the repo root, with PRISM_POSTGRES_* pointing at the database):
+Usage (from the repo root, with TERRA_POSTGRES_* pointing at the database):
 
     python scripts/seed_telangana.py            # truncate + reseed
     python scripts/seed_telangana.py --no-truncate
@@ -37,8 +37,6 @@ from app.models import (  # noqa: E402
     DatasetRow,
     District,
     FieldRow,
-    FloodHazardZone,
-    HistoricalFlood,
     LayerRow,
     Mandal,
     Municipality,
@@ -72,9 +70,7 @@ _SEED_TABLES = (
     "admin.mandal",
     "admin.district",
     "admin.state",
-    "hazards.flood_hazard_zone",
     "hazards.water_body",
-    "hazards.historical_flood",
     "infrastructure.road",
     "infrastructure.railway",
     "infrastructure.transmission_line",
@@ -315,17 +311,10 @@ async def _seed_admin(session: AsyncSession) -> dict[str, int]:
 
 
 async def _seed_hazards(session: AsyncSession) -> dict[str, int]:
+    # Flood-hazard fields are served live from JRC GloFAS via Earth Engine, not
+    # from PostGIS — the former flood_zones/historical_floods placeholder
+    # fixtures were removed in Phase 10-C. Waterbodies come from OpenStreetMap.
     counts: dict[str, int] = {}
-    counts["flood_hazard_zone"] = 0
-    for props, geom in _load_features("flood_zones"):
-        session.add(
-            FloodHazardZone(
-                hazard_class=props["hazard_class"],
-                name=props.get("name"),
-                geom=_geom(_multipolygon(geom)),
-            )
-        )
-        counts["flood_hazard_zone"] += 1
     counts["water_body"] = 0
     for props, geom in _load_features("water_bodies"):
         session.add(
@@ -336,16 +325,6 @@ async def _seed_hazards(session: AsyncSession) -> dict[str, int]:
             )
         )
         counts["water_body"] += 1
-    counts["historical_flood"] = 0
-    for props, geom in _load_features("historical_floods"):
-        session.add(
-            HistoricalFlood(
-                event_name=props.get("event_name"),
-                year=props.get("year"),
-                geom=_geom(_multipolygon(geom)),
-            )
-        )
-        counts["historical_flood"] += 1
     await session.flush()
     return counts
 
@@ -385,6 +364,22 @@ async def _seed_infrastructure(session: AsyncSession) -> dict[str, int]:
 
 
 async def _seed_cadastral(session: AsyncSession) -> dict[str, int]:
+    """Seed the cadastral parcel table — dev fixtures only, gated (SRS §16.4).
+
+    ``parcels.geojson`` is a hand-authored, non-authoritative sample (real Bhu
+    Bharati data has no bulk/API access without a government agreement, see
+    ``app/connectors/cadastral.py``). It is seeded only when
+    ``TERRA_ENABLE_DEV_FIXTURES=true``; otherwise the parcel table stays empty
+    and cadastral fields resolve to typed nulls, so no synthetic value can ever
+    be served under the "Telangana Bhu Bharati" citation in production.
+    """
+    if not get_settings().enable_dev_fixtures:
+        logger.info(
+            "seed.cadastral_skipped",
+            reason="parcels.geojson is a non-authoritative dev fixture",
+            enable="TERRA_ENABLE_DEV_FIXTURES=true",
+        )
+        return {"parcel": 0}
     count = 0
     for props, geom in _load_features("parcels"):
         session.add(
@@ -417,9 +412,7 @@ async def seed(*, truncate: bool = True, dry_run: bool = False) -> dict[str, int
         "villages",
         "municipalities",
         "wards",
-        "flood_zones",
         "water_bodies",
-        "historical_floods",
         "roads",
         "railways",
         "transmission_lines",

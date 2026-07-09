@@ -1,6 +1,6 @@
 """Application configuration (SRS §9, §13).
 
-Settings are loaded from environment variables (prefixed ``PRISM_``) and an
+Settings are loaded from environment variables (prefixed ``TERRA_``) and an
 optional ``.env`` file using Pydantic v2 ``BaseSettings``. No business logic or
 dataset-specific values live here — those belong in ``configs/*.yaml`` and are
 read through :mod:`app.config.loader`.
@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     """Centralized, environment-driven application settings."""
 
     model_config = SettingsConfigDict(
-        env_prefix="PRISM_",
+        env_prefix="TERRA_",
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     )
 
     # --- Application -----------------------------------------------------
-    app_name: str = "Prism Earth"
+    app_name: str = "Terra"
     app_version: str = "0.1.0"
     app_env: Environment = "development"
     debug: bool = False
@@ -61,18 +61,45 @@ class Settings(BaseSettings):
     # --- PostgreSQL / PostGIS (SRS §20, §22) ----------------------------
     postgres_host: str = "db"
     postgres_port: int = 5432
-    postgres_user: str = "prism"
-    postgres_password: str = "prism"  # noqa: S105 - dev default; real secret from env (§29.2)
-    postgres_db: str = "prism_earth"
+    postgres_user: str = "terra"
+    postgres_password: str = "terra"  # noqa: S105 - dev default; real secret from env (§29.2)
+    postgres_db: str = "terra"
 
     # --- Redis (SRS §23) -------------------------------------------------
     redis_url: str = "redis://redis:6379/0"
+
+    # --- Fetch hot path (SRS §23, §7.1) ----------------------------------
+    # Read-through fetch-result cache over Redis, keyed per connector/field at
+    # a rounded coordinate and expiring on each dataset's declared TTL. Redis
+    # being down degrades to cache misses; it never blocks a fetch.
+    fetch_cache_enabled: bool = True
+    # Coordinate rounding for cache keys: 4 decimals ≈ 11 m, inside the
+    # resolution of every sampled raster dataset.
+    fetch_cache_coord_precision: int = 4
+    # Blocking Earth Engine calls admitted concurrently per process. Excess
+    # calls queue on the event loop instead of exhausting the shared thread
+    # pool, so a slow GEE region cannot pin request handling.
+    gee_max_concurrency: int = 8
+    # Wall-clock budget for each connector inside a fetch fan-out. Connectors
+    # run in parallel, so this also bounds the whole fetch stage; on expiry the
+    # connector's fields become connector_timeout nulls (SRS §15.16, §15.17).
+    fetch_deadline_seconds: float = 20.0
+    # End-to-end wall-clock budget for /ask (planner + fetch + synthesizer).
+    # Expiry returns 504 DEADLINE_EXCEEDED instead of holding the request open.
+    ask_deadline_seconds: float = 60.0
 
     # --- Config files (SRS §10, §11.8) ----------------------------------
     config_dir: Path = BASE_DIR / "configs"
 
     # --- Spatial data seed (SRS §24.4) ----------------------------------
     seed_data_dir: Path = BASE_DIR / "datasets" / "telangana"
+    # Seed hand-authored, non-authoritative dev fixtures (currently the sample
+    # cadastral parcel in parcels.geojson). OFF by default: real Bhu Bharati
+    # parcel data requires a government data-sharing agreement, and a synthetic
+    # parcel must never be servable under a government citation in production.
+    # With the flag off the parcel table stays empty and every cadastral field
+    # resolves to a typed null (SRS §15.17).
+    enable_dev_fixtures: bool = False
 
     # --- Google Earth Engine (SRS §19.3) --------------------------------
     # Service-account auth (§19.3). Credentials never reach the frontend or API
@@ -111,6 +138,20 @@ class Settings(BaseSettings):
     auth_admin_token: str | None = None
     # Default per-token request budget (§13.19). Overridable per token.
     auth_default_rate_limit_per_minute: int = 120
+    # OAuth trust model for the MCP surface (§13.20). Dynamic client
+    # registration (RFC 7591) is unauthenticated by design and /oauth/authorize
+    # auto-grants consent (no login UI), so an open registration endpoint means
+    # any caller can self-issue fetch/ask tokens — authentication identifies
+    # and meters callers, it does not gate access. That is the intentional
+    # default (True): MCP clients (Claude Desktop, Cursor) connect out of the
+    # box, and every self-registered client's tokens carry the reduced budget
+    # below. Set False to make registration admin-gated: only operator-vetted
+    # clients exist, and "authenticated" then also means "authorized".
+    auth_open_client_registration: bool = True
+    # Per-token request budget for tokens minted by SELF-registered OAuth
+    # clients (the low-trust surface above). Admin-registered clients get the
+    # default budget.
+    auth_self_registered_rate_limit_per_minute: int = 30
     # Default lifetime for issued tokens; ``None`` means non-expiring.
     auth_token_ttl_days: int | None = None
     # Public base URL used as the OAuth issuer / resource identifier (§13.20).
@@ -139,7 +180,7 @@ class Settings(BaseSettings):
     metrics_enabled: bool = True
     otel_enabled: bool = False
     otel_exporter_endpoint: str | None = None  # OTLP/HTTP, e.g. http://otel-collector:4318
-    otel_service_name: str = "prism-earth-backend"
+    otel_service_name: str = "terra-backend"
 
     # --- Rate limiting (SRS §13.19, §29) --------------------------------
     # A configurable, environment-specific gateway limiter applied to the data
@@ -190,28 +231,35 @@ class Settings(BaseSettings):
             if not self.auth_enabled:
                 problems.append(
                     "Authentication is disabled in production: set "
-                    "PRISM_AUTH_ENABLED=true so POST /fetch, POST /ask, and the "
+                    "TERRA_AUTH_ENABLED=true so POST /fetch, POST /ask, and the "
                     "MCP tools reject anonymous access (§13.20)."
                 )
             elif not self.auth_admin_token:
                 problems.append(
                     "Authentication is enabled in production but "
-                    "PRISM_AUTH_ADMIN_TOKEN is unset, so no tokens can be issued "
+                    "TERRA_AUTH_ADMIN_TOKEN is unset, so no tokens can be issued "
                     "and the platform is unusable: set a bootstrap admin "
                     "credential (§13.20)."
                 )
             if "*" in self.cors_origins:
                 problems.append(
                     "CORS is set to the '*' wildcard in production: set "
-                    "PRISM_CORS_ORIGINS to an explicit allow-list, or '[]' for "
+                    "TERRA_CORS_ORIGINS to an explicit allow-list, or '[]' for "
                     "same-origin only (§29.3)."
+                )
+            if self.enable_dev_fixtures:
+                problems.append(
+                    "Dev fixtures are enabled in production: unset "
+                    "TERRA_ENABLE_DEV_FIXTURES so synthetic sample data (e.g. "
+                    "the hand-authored cadastral parcel) is never seeded or "
+                    "served under an authoritative citation (SRS §16.4)."
                 )
         # Invalid in every environment — browsers reject '*' with credentials.
         if self.cors_allow_credentials and "*" in self.cors_origins:
             problems.append(
                 "CORS allow_credentials cannot be combined with the '*' origin; "
-                "browsers reject the pair. Set an explicit PRISM_CORS_ORIGINS "
-                "allow-list or leave PRISM_CORS_ALLOW_CREDENTIALS off."
+                "browsers reject the pair. Set an explicit TERRA_CORS_ORIGINS "
+                "allow-list or leave TERRA_CORS_ALLOW_CREDENTIALS off."
             )
         return problems
 

@@ -46,7 +46,8 @@ function verdictFor(field: CatalogField, enabled: Set<string>, supported: boolea
  * states that enable them — driven entirely by /meta/states + /meta/fields.
  */
 export function RegionalAvailability({ className }: { className?: string }) {
-  const { data: states } = useStates();
+  const statesQ = useStates();
+  const states = statesQ.data;
   const { data: fieldsData, isLoading, isError, error, refetch } = useFields();
 
   const [region, setRegion] = useState("");
@@ -57,7 +58,8 @@ export function RegionalAvailability({ className }: { className?: string }) {
     if (!region && states?.states.length) setRegion(states.states[0].name);
   }, [states, region]);
 
-  const { data: resolution, isFetching } = useResolveState(region, region.trim().length > 0);
+  const resolutionQ = useResolveState(region, region.trim().length > 0);
+  const { data: resolution, isFetching } = resolutionQ;
 
   const enabled = useMemo(() => new Set(resolution?.state?.enabled_fields ?? []), [resolution]);
   const supported = resolution?.supported ?? false;
@@ -98,6 +100,15 @@ export function RegionalAvailability({ className }: { className?: string }) {
             />
           </div>
           <div className="flex flex-wrap gap-1.5">
+            {statesQ.isError && (
+              <button
+                type="button"
+                onClick={() => statesQ.refetch()}
+                className="text-xs text-danger underline-offset-2 hover:underline"
+              >
+                Couldn&apos;t load registered regions — retry
+              </button>
+            )}
             {states?.states.map((s) => (
               <RegionChip
                 key={s.slug}
@@ -119,6 +130,19 @@ export function RegionalAvailability({ className }: { className?: string }) {
         </div>
 
         {/* Resolution banner */}
+        {region.trim() && resolutionQ.isError && (
+          <div className="mt-3 flex items-center gap-2 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm">
+            <Ban className="h-4 w-4 text-danger" />
+            <span className="text-foreground/90">Couldn&apos;t resolve this region right now.</span>
+            <button
+              type="button"
+              onClick={() => resolutionQ.refetch()}
+              className="ml-auto text-xs text-muted-foreground underline-offset-2 hover:underline"
+            >
+              Retry
+            </button>
+          </div>
+        )}
         {region.trim() && resolution && (
           <div
             className={cn(

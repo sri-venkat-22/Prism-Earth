@@ -119,8 +119,15 @@ _BHUVAN = "https://bhuvan.nrsc.gov.in/"
 _OSM = "https://www.openstreetmap.org/"
 
 # --------------------------------------------------------------------------- #
-# Terrain (SRS §18.3) — ISRO Bhuvan CartoDEM, Copernicus DEM, SoilGrids       #
+# Terrain (SRS §18.3) — Copernicus DEM GLO-30, SoilGrids, CGWB                #
 # --------------------------------------------------------------------------- #
+# SRS §18.3 originally designated ISRO CartoDEM, but CartoDEM has no accessible
+# bulk/API source (not in the public Earth Engine catalog; Bhuvan has no open
+# download path), so the catalog names the DEM the Terrain connector actually
+# samples — Copernicus DEM GLO-30 (Phase 10-B; see app/gee/datasets.py).
+_COPERNICUS_DEM = (
+    "https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_DEM_GLO30"
+)
 _TERRAIN = (
     _field(
         "elevation",
@@ -128,8 +135,8 @@ _TERRAIN = (
         datatype=DataType.FLOAT,
         unit="m",
         description="Ground elevation above mean sea level.",
-        source="ISRO CartoDEM",
-        source_url=_BHUVAN,
+        source="Copernicus DEM GLO-30",
+        source_url=_COPERNICUS_DEM,
         ttl="365d",
         hint="Height above the EGM96 geoid; combine with slope for site grading.",
     ),
@@ -139,8 +146,8 @@ _TERRAIN = (
         datatype=DataType.FLOAT,
         unit="degrees",
         description="Steepest-descent ground gradient.",
-        source="ISRO CartoDEM (derived)",
-        source_url=_BHUVAN,
+        source="Copernicus DEM GLO-30 (derived)",
+        source_url=_COPERNICUS_DEM,
         ttl="365d",
         hint="0° is flat; higher values indicate steeper, less buildable terrain.",
     ),
@@ -150,8 +157,8 @@ _TERRAIN = (
         datatype=DataType.FLOAT,
         unit="degrees",
         description="Compass direction the slope faces.",
-        source="ISRO CartoDEM (derived)",
-        source_url=_BHUVAN,
+        source="Copernicus DEM GLO-30 (derived)",
+        source_url=_COPERNICUS_DEM,
         ttl="365d",
         nullable=True,
         null_meaning="Aspect is undefined on perfectly flat cells.",
@@ -163,8 +170,8 @@ _TERRAIN = (
         datatype=DataType.FLOAT,
         unit="m",
         description="Local variability of elevation.",
-        source="ISRO CartoDEM (derived)",
-        source_url=_BHUVAN,
+        source="Copernicus DEM GLO-30 (derived)",
+        source_url=_COPERNICUS_DEM,
         ttl="365d",
         hint="Standard deviation of elevation in a local window; higher = rougher.",
     ),
@@ -174,8 +181,8 @@ _TERRAIN = (
         datatype=DataType.FLOAT,
         unit="index",
         description="Tendency of a cell to accumulate water.",
-        source="ISRO CartoDEM (derived)",
-        source_url=_BHUVAN,
+        source="Copernicus DEM GLO-30 (derived)",
+        source_url=_COPERNICUS_DEM,
         lifecycle=Lifecycle.BETA,
         ttl="365d",
         nullable=True,
@@ -271,9 +278,16 @@ _CLIMATE = (
 )
 
 # --------------------------------------------------------------------------- #
-# Land Cover (SRS §18.5) — Sentinel-2, ISRO Bhuvan LULC, MODIS                #
+# Land Cover (SRS §18.5) — Sentinel-2, ESA WorldCover, MODIS                  #
 # --------------------------------------------------------------------------- #
+# Classification fields are served by ESA WorldCover (10 m, global), not the
+# ISRO Bhuvan LULC product the SRS originally named — Bhuvan LULC has no open
+# bulk/API access (Phase 10-B/10-C source reconciliation).
 _SENTINEL = "https://sentinels.copernicus.eu/"
+_WORLDCOVER = (
+    "https://developers.google.com/earth-engine/datasets/catalog/ESA_WorldCover_v200"
+)
+_MODIS = "https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD13Q1"
 _LAND_COVER = (
     _field(
         "ndvi_current",
@@ -292,8 +306,8 @@ _LAND_COVER = (
         datatype=DataType.FLOAT,
         unit="index",
         description="Multi-year mean NDVI.",
-        source="Copernicus Sentinel-2 / MODIS",
-        source_url=_SENTINEL,
+        source="MODIS Vegetation Indices (MOD13Q1)",
+        source_url=_MODIS,
         lifecycle=Lifecycle.BETA,
         ttl="30d",
         nullable=True,
@@ -305,8 +319,8 @@ _LAND_COVER = (
         layer=Layer.LAND_COVER,
         datatype=DataType.ENUM,
         description="Primary land-use / land-cover class.",
-        source="ISRO Bhuvan LULC",
-        source_url=_BHUVAN,
+        source="ESA WorldCover",
+        source_url=_WORLDCOVER,
         ttl="365d",
         hint="cropland / forest / built-up / water / barren / wetland.",
     ),
@@ -316,8 +330,8 @@ _LAND_COVER = (
         datatype=DataType.FLOAT,
         unit="%",
         description="Fraction of area under tree canopy.",
-        source="Copernicus Sentinel-2",
-        source_url=_SENTINEL,
+        source="ESA WorldCover",
+        source_url=_WORLDCOVER,
         ttl="30d",
         hint="Higher canopy cover lowers wildfire ignition but raises fuel load.",
     ),
@@ -338,8 +352,8 @@ _LAND_COVER = (
         layer=Layer.LAND_COVER,
         datatype=DataType.BOOLEAN,
         description="Whether the location intersects a mapped wetland.",
-        source="National Wetland Atlas (ISRO)",
-        source_url=_BHUVAN,
+        source="ESA WorldCover",
+        source_url=_WORLDCOVER,
         ttl="365d",
         hint="True indicates regulatory and flood-buffer significance.",
     ),
@@ -357,17 +371,19 @@ _LAND_COVER = (
 )
 
 # --------------------------------------------------------------------------- #
-# Natural Hazard (SRS §18.6) — JRC GloFAS, OpenStreetMap, JRC GSW, NASA FIRMS #
+# Natural Hazard (SRS §18.6) — JRC GloFAS, OpenStreetMap, JRC GSW, VIIRS      #
 # --------------------------------------------------------------------------- #
 # No open bulk CWC/NRSC flood-hazard GIS layer exists for Telangana (confirmed
 # by research 2026-07-01: NRSC's Flood Hazard Zonation Atlas covers Bihar only;
 # Bhuvan/NDEM's flood layers are login/VPN-gated viewers). flood_hazard_class and
 # within_flood_hazard_polygon are derived instead from JRC's Global River Flood
 # Hazard Maps (GloFAS v2.1, sampled live via Earth Engine, SRS §16.4 Accuracy).
+# Fire fields name the VIIRS VNP14A1 product actually sampled via Earth Engine,
+# not the FIRMS portal the SRS originally named (Phase 10-C).
 _GLOFAS = (
     "https://developers.google.com/earth-engine/datasets/catalog/JRC_CEMS_GLOFAS_FloodHazard_v2_1"
 )
-_FIRMS = "https://firms.modaps.eosdis.nasa.gov/"
+_VIIRS = "https://developers.google.com/earth-engine/datasets/catalog/NOAA_VIIRS_001_VNP14A1"
 _NATURAL_HAZARD = (
     _field(
         "flood_hazard_class",
@@ -436,8 +452,8 @@ _NATURAL_HAZARD = (
         layer=Layer.NATURAL_HAZARD,
         datatype=DataType.ENUM,
         description="Categorical wildfire risk.",
-        source="NASA FIRMS (derived)",
-        source_url=_FIRMS,
+        source="VIIRS Active Fires (VNP14A1) (derived)",
+        source_url=_VIIRS,
         ttl="7d",
         hint="low / moderate / high; combines fuel, aridity, and fire activity.",
     ),
@@ -447,8 +463,8 @@ _NATURAL_HAZARD = (
         datatype=DataType.INTEGER,
         unit="count",
         description="Active fire detections within 10 km in the last 24 hours.",
-        source="NASA FIRMS",
-        source_url=_FIRMS,
+        source="VIIRS Active Fires (VNP14A1)",
+        source_url=_VIIRS,
         ttl="1d",
         hint="Near-real-time; non-zero counts signal active fire in the vicinity.",
     ),

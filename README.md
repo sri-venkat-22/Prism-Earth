@@ -1,6 +1,6 @@
-# Prism Earth
+# Terra
 
-Deterministic, citation-backed geospatial intelligence for India. Prism Earth
+Deterministic, citation-backed geospatial intelligence for India. Terra
 turns a coordinate into provenance-tracked, source-cited geospatial data — and,
 via an AI layer, into natural-language answers that never fabricate values.
 
@@ -46,7 +46,7 @@ Health endpoints (SRS §13.16): `/api/v1/health`, `/api/v1/ready`, `/api/v1/live
 ## Repository layout (SRS §10)
 
 ```
-prism-earth/
+terra/
 ├── backend/      FastAPI app (api, core, config, models, schemas, middleware, …)
 ├── frontend/     Next.js + TS + Tailwind + ShadCN shell
 ├── datasets/     dataset isolation (telangana, raster, vector, metadata)

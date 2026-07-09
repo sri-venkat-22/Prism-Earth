@@ -7,7 +7,6 @@ from geoalchemy2 import Geometry
 
 from app.models import (
     District,
-    FloodHazardZone,
     Mandal,
     Municipality,
     Parcel,
@@ -30,7 +29,6 @@ SPATIAL_MODELS = [
     (Village, "admin", "MULTIPOLYGON"),
     (Municipality, "admin", "MULTIPOLYGON"),
     (Ward, "admin", "MULTIPOLYGON"),
-    (FloodHazardZone, "hazards", "MULTIPOLYGON"),
     (WaterBody, "hazards", "MULTIPOLYGON"),
     (Road, "infrastructure", "LINESTRING"),
     (Railway, "infrastructure", "LINESTRING"),

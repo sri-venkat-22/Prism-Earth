@@ -1,12 +1,12 @@
 """Configurable LLM client for the AI pipeline (SRS §9, §14.14, §6.5).
 
 The Planner (SRS §14) and Synthesizer (SRS §6.5) are the *only* AI components in
-Prism Earth. Both talk to a single, provider-agnostic completion interface —
+Terra. Both talk to a single, provider-agnostic completion interface —
 :class:`LLMClient` — so the concrete model is a configuration choice, never
 hardcoded (SRS §9: "LangChain, LiteLLM, OpenAI / Claude (configurable)").
 
 :class:`LiteLLMClient` is the production implementation. It routes to any
-provider LiteLLM supports (Anthropic, OpenAI, …) via the ``PRISM_LLM_MODEL``
+provider LiteLLM supports (Anthropic, OpenAI, …) via the ``TERRA_LLM_MODEL``
 route string, defaulting to a current Claude model. ``litellm`` is imported
 lazily so the dependency is optional: tests inject a fake client and the
 deterministic Fetch spine (SRS §15) never needs it.

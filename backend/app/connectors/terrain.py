@@ -13,11 +13,11 @@ credentials), mirroring the GEE client's injectable design.
 
 from __future__ import annotations
 
-import asyncio
 from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict
 
+from app.connectors._concurrency import run_blocking
 from app.connectors.base import (
     BaseConnector,
     Confidence,
@@ -102,10 +102,11 @@ class TerrainConnector(BaseConnector):
 
     async def fetch(self, fields: list[str], context: FetchContext) -> list[FieldResult]:
         await self.validate(fields)
-        # GEE calls are blocking; run them off the event loop so connectors fan
-        # out concurrently (SRS §15.12). A failure here propagates to the
+        # GEE calls are blocking; run them off the event loop (bounded, so a
+        # slow GEE region cannot pin the shared thread pool) while connectors
+        # fan out concurrently (SRS §15.12). A failure here propagates to the
         # orchestrator as a partial failure (SRS §18.13).
-        sample = await asyncio.to_thread(self._source.sample, context.lat, context.lng)
+        sample = await run_blocking(self._source.sample, context.lat, context.lng)
         dataset = self._source.dataset_name
         values = {"elevation": sample.elevation, "slope": sample.slope, "aspect": sample.aspect}
 

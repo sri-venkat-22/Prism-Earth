@@ -12,9 +12,22 @@ def test_registry_merges_yaml_and_gee_sources() -> None:
     registry = build_dataset_registry()
     # From configs/datasets.yaml (the §16.10 registry).
     assert registry.has("Survey of India Administrative Boundaries")
-    assert registry.has("ISRO CartoDEM")
-    # From the Earth Engine registry (so GEE-sourced provenance resolves).
     assert registry.has("Copernicus DEM GLO-30")
+    # From the Earth Engine registry (so GEE-sourced provenance resolves).
+    assert registry.has("USGS SRTM GL1 v3")
+
+
+def test_registry_names_only_queryable_sources() -> None:
+    """Sources with no accessible data path were removed in Phase 10 — the
+    registry names only datasets the runtime can actually query and cite."""
+    registry = build_dataset_registry()
+    for advertised_only in (
+        "ISRO CartoDEM",
+        "CWC Flood Data",
+        "NRSC Waterbody Database",
+        "NASA FIRMS",
+    ):
+        assert not registry.has(advertised_only)
 
 
 def test_registry_resolves_authoritative_metadata() -> None:

@@ -14,11 +14,11 @@ orchestrator returns them as typed nulls (SRS §15.17).
 
 from __future__ import annotations
 
-import asyncio
 from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict
 
+from app.connectors._concurrency import run_blocking
 from app.connectors.base import (
     BaseConnector,
     Confidence,
@@ -181,7 +181,7 @@ class LandCoverConnector(BaseConnector):
 
     async def fetch(self, fields: list[str], context: FetchContext) -> list[FieldResult]:
         await self.validate(fields)
-        sample = await asyncio.to_thread(self._source.sample, context.lat, context.lng)
+        sample = await run_blocking(self._source.sample, context.lat, context.lng)
         values = sample.model_dump()
 
         results: list[FieldResult] = []

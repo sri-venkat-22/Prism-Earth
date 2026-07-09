@@ -1,7 +1,7 @@
 """OpenTelemetry distributed tracing (SRS §27.3, §7.7).
 
 Tracing is **opt-in**: a real tracer provider with an OTLP/HTTP exporter is
-installed only when ``PRISM_OTEL_ENABLED`` is true and an exporter endpoint is
+installed only when ``TERRA_OTEL_ENABLED`` is true and an exporter endpoint is
 configured. Otherwise :func:`configure_tracing` is a no-op, so development and
 the hermetic test suite carry no tracing overhead and need no collector.
 

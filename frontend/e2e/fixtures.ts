@@ -103,7 +103,7 @@ export const statesFixture = {
 
 export const healthFixture = {
   status: "ok",
-  service: "Prism Earth",
+  service: "Terra",
   version: "0.1.0",
   environment: "development",
   timestamp: NOW,
@@ -310,7 +310,7 @@ export async function mockApi(page: Page): Promise<void> {
 export async function seedLocation(page: Page): Promise<void> {
   await page.addInitScript(() => {
     window.localStorage.setItem(
-      "prism-earth-location",
+      "terra-location",
       JSON.stringify({
         state: {
           coordinate: { lat: 17.385, lng: 78.486 },

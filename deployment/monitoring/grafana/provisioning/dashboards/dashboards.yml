@@ -2,9 +2,9 @@
 apiVersion: 1
 
 providers:
-  - name: Prism Earth
+  - name: Terra
     orgId: 1
-    folder: Prism Earth
+    folder: Terra
     type: file
     disableDeletion: false
     updateIntervalSeconds: 30

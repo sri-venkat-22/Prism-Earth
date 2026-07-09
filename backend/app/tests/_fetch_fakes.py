@@ -25,6 +25,7 @@ from app.connectors.registry import ConnectorRegistry
 from app.connectors.terrain import TerrainConnector, TerrainSample
 from app.connectors.utilities import UtilitiesConnector, UtilitiesSample
 from app.datasets.registry import get_dataset_registry
+from app.fetchers.cache import FetchResultCache
 from app.fetchers.orchestrator import FetchOrchestrator
 from app.metadata.catalog import get_catalog
 from app.metadata.state_registry import get_state_registry
@@ -110,6 +111,8 @@ def build_orchestrator(
     context: SpatialContext | None = None,
     terrain_source: object | None = None,
     connectors: list[BaseConnector] | None = None,
+    cache: FetchResultCache | None = None,
+    deadline_seconds: float | None = None,
 ) -> FetchOrchestrator:
     """Assemble a FetchOrchestrator from real catalog/registries + fake sources."""
     catalog = get_catalog()
@@ -124,6 +127,8 @@ def build_orchestrator(
         state_registry=get_state_registry(),
         provenance=ProvenanceGenerator(catalog, dataset_registry),
         citations=CitationEngine(dataset_registry),
+        cache=cache,
+        deadline_seconds=deadline_seconds,
     )
 
 

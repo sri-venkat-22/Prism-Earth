@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 
+import { ErrorState, LoadingBlock } from "@/components/feedback";
 import { Reveal } from "@/components/reveal";
 import { SectionHeading } from "@/components/section-heading";
 import { TerminalLine, TerminalWindow } from "@/components/terminal-window";
@@ -37,7 +38,7 @@ const ENDPOINTS = [
 const FAQ = [
   {
     q: "What does “ground truth” mean here?",
-    a: "Every value Prism Earth returns is fetched from a named, versioned dataset and carries its own provenance — source, license, retrieval time, and confidence. The synthesizer only states values that were actually fetched and explicitly flags anything unavailable. It never fabricates data.",
+    a: "Every value Terra returns is fetched from a named, versioned dataset and carries its own provenance — source, license, retrieval time, and confidence. The synthesizer only states values that were actually fetched and explicitly flags anything unavailable. It never fabricates data.",
   },
   {
     q: "Which regions are supported?",
@@ -76,7 +77,7 @@ export default function HomePage() {
             Geospatial ground truth for any Indian coordinate.
           </h1>
           <p className="mt-6 max-w-xl text-[17px] leading-relaxed text-muted-foreground">
-            Prism Earth gives AI agents and analysts sourced, citation-backed data for any point —
+            Terra gives AI agents and analysts sourced, citation-backed data for any point —
             terrain, climate, land cover, hazard, infrastructure and more. Every value is traceable
             to a dataset. Nothing is ever invented.
           </p>
@@ -106,10 +107,10 @@ export default function HomePage() {
 
         {/* /ask terminal demo */}
         <div className="animate-fade-up [animation-delay:120ms]">
-          <TerminalWindow title="prism-earth · POST /api/v1/ask">
+          <TerminalWindow title="terra · POST /api/v1/ask">
             <div className="space-y-2.5">
               <TerminalLine prefix="$" tone="muted">
-                curl -s prism.earth/api/v1/ask -d &apos;{"{"}
+                curl -s terra.earth/api/v1/ask -d &apos;{"{"}
               </TerminalLine>
               <TerminalLine tone="muted">{'  "lat": 17.385, "lng": 78.486,'}</TerminalLine>
               <TerminalLine tone="muted">
@@ -120,19 +121,26 @@ export default function HomePage() {
                 # planner → 3 layers · fetch → 7 fields · synthesize
               </TerminalLine>
               <TerminalLine tone="success">
-                Terrain here is gently sloped (mean slope 2.4°) with high annual solar irradiance{" "}
+                Terrain here is gently sloped (mean slope 2.4°){" "}
                 <span className="rounded border border-brand/40 bg-brand/10 px-1 text-brand">
                   [CIT-001]
-                </span>
-                . Land cover is predominantly cropland{" "}
+                </span>{" "}
+                and land cover is predominantly cropland{" "}
                 <span className="rounded border border-brand/40 bg-brand/10 px-1 text-brand">
                   [CIT-002]
                 </span>
-                ; flood hazard is low.
+                ; flood hazard is low{" "}
+                <span className="rounded border border-brand/40 bg-brand/10 px-1 text-brand">
+                  [CIT-003]
+                </span>
+                . Solar irradiance is not yet in the catalog — flagged unavailable, never estimated.
               </TerminalLine>
               <div className="my-2 border-t border-border" />
               <TerminalLine tone="comment">
-                # CIT-001 NASA SRTM · CIT-002 ESA WorldCover
+                # CIT-001 Copernicus DEM GLO-30 · CIT-002 ESA WorldCover
+              </TerminalLine>
+              <TerminalLine tone="comment">
+                # CIT-003 JRC Global River Flood Hazard Maps
               </TerminalLine>
             </div>
           </TerminalWindow>
@@ -154,41 +162,52 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* What Prism Earth provides */}
+      {/* What Terra provides */}
       <section>
         <Reveal>
           <SectionHeading
-            eyebrow="What Prism Earth provides"
+            eyebrow="What Terra provides"
             title="Nine domain layers, one honest contract."
             description="Each layer is a set of sourced fields with its own provenance. Toggle them on the map, or let Ask pick the right ones for your question."
           />
         </Reveal>
-        <div className="mt-10 grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
-          {(layers.data?.layers ?? []).map((layer, i) => {
-            const meta = layerMeta(layer.id);
-            const Icon = meta.icon;
-            return (
-              <Reveal key={layer.id} delay={(i % 3) * 70} className="bg-card">
-                <div className="group h-full p-6 transition-colors hover:bg-secondary">
-                  <span
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-md"
-                    style={{
-                      background: `hsl(${meta.accent} / 0.12)`,
-                      color: `hsl(${meta.accent})`,
-                    }}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <h3 className="mt-4 text-[17px] font-semibold">{layer.name}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                    {layer.purpose}
-                  </p>
-                  <p className="mono-eyebrow mt-4">{layer.field_count} fields</p>
-                </div>
-              </Reveal>
-            );
-          })}
-        </div>
+        {layers.isLoading && <LoadingBlock rows={3} className="mt-10" />}
+        {layers.isError && (
+          <ErrorState
+            error={layers.error}
+            onRetry={() => layers.refetch()}
+            title="Couldn't load the layer catalog"
+            className="mt-10"
+          />
+        )}
+        {layers.data && (
+          <div className="mt-10 grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+            {layers.data.layers.map((layer, i) => {
+              const meta = layerMeta(layer.id);
+              const Icon = meta.icon;
+              return (
+                <Reveal key={layer.id} delay={(i % 3) * 70} className="bg-card">
+                  <div className="group h-full p-6 transition-colors hover:bg-secondary">
+                    <span
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-md"
+                      style={{
+                        background: `hsl(${meta.accent} / 0.12)`,
+                        color: `hsl(${meta.accent})`,
+                      }}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <h3 className="mt-4 text-[17px] font-semibold">{layer.name}</h3>
+                    <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                      {layer.purpose}
+                    </p>
+                    <p className="mono-eyebrow mt-4">{layer.field_count} fields</p>
+                  </div>
+                </Reveal>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* Use cases */}
@@ -197,41 +216,56 @@ export default function HomePage() {
           <SectionHeading
             eyebrow="Use cases"
             title="Ready-made presets for real questions."
-            description={`${presets.data?.count ?? "18"} presets bundle the right fields for a job — siting, risk, and lookup queries you can run in one call.`}
+            description={
+              presets.data
+                ? `${presets.data.count} presets bundle the right fields for a job — siting, risk, and lookup queries you can run in one call.`
+                : "Presets bundle the right fields for a job — siting, risk, and lookup queries you can run in one call."
+            }
           />
         </Reveal>
-        <div className="mt-10 grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
-          {(presets.data?.presets ?? []).slice(0, USE_CASE_LIMIT).map((preset, i) => {
-            const meta = layerMeta(preset.layers[0] ?? "");
-            const Icon = meta.icon;
-            return (
-              <Reveal key={preset.id} delay={(i % 3) * 70} className="bg-card">
-                <Link
-                  href={`/fetch?preset=${preset.id}`}
-                  className="group flex h-full flex-col p-6 transition-colors hover:bg-secondary"
-                >
-                  <span
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-md"
-                    style={{
-                      background: `hsl(${meta.accent} / 0.12)`,
-                      color: `hsl(${meta.accent})`,
-                    }}
+        {presets.isLoading && <LoadingBlock rows={3} className="mt-10" />}
+        {presets.isError && (
+          <ErrorState
+            error={presets.error}
+            onRetry={() => presets.refetch()}
+            title="Couldn't load presets"
+            className="mt-10"
+          />
+        )}
+        {presets.data && (
+          <div className="mt-10 grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+            {presets.data.presets.slice(0, USE_CASE_LIMIT).map((preset, i) => {
+              const meta = layerMeta(preset.layers[0] ?? "");
+              const Icon = meta.icon;
+              return (
+                <Reveal key={preset.id} delay={(i % 3) * 70} className="bg-card">
+                  <Link
+                    href={`/fetch?preset=${preset.id}`}
+                    className="group flex h-full flex-col p-6 transition-colors hover:bg-secondary"
                   >
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <h3 className="mt-4 text-[17px] font-semibold">{preset.name}</h3>
-                  <p className="mt-1.5 flex-1 text-sm leading-relaxed text-muted-foreground">
-                    {preset.description}
-                  </p>
-                  <span className="mono-eyebrow mt-4 inline-flex items-center gap-1 text-brand">
-                    Try this preset
-                    <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-                  </span>
-                </Link>
-              </Reveal>
-            );
-          })}
-        </div>
+                    <span
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-md"
+                      style={{
+                        background: `hsl(${meta.accent} / 0.12)`,
+                        color: `hsl(${meta.accent})`,
+                      }}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <h3 className="mt-4 text-[17px] font-semibold">{preset.name}</h3>
+                    <p className="mt-1.5 flex-1 text-sm leading-relaxed text-muted-foreground">
+                      {preset.description}
+                    </p>
+                    <span className="mono-eyebrow mt-4 inline-flex items-center gap-1 text-brand">
+                      Try this preset
+                      <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                  </Link>
+                </Reveal>
+              );
+            })}
+          </div>
+        )}
         {(presets.data?.count ?? 0) > USE_CASE_LIMIT && (
           <p className="mt-4 text-center text-[13px] text-muted-foreground">
             +{(presets.data?.count ?? 0) - USE_CASE_LIMIT} more presets available via{" "}
@@ -249,10 +283,10 @@ export default function HomePage() {
             description="Three endpoints, all self-describing and audit-ready. Structured in, sourced out — and honest about what it doesn't know."
           />
         </Reveal>
-        <div className="mt-10 grid gap-4 lg:grid-cols-3">
+        <div className="mt-10 grid gap-px overflow-hidden rounded-lg border border-border bg-border lg:grid-cols-3">
           {ENDPOINTS.map((e, i) => (
-            <Reveal key={e.path} delay={i * 70}>
-              <div className="flex h-full flex-col rounded-lg border border-border bg-card p-6">
+            <Reveal key={e.path} delay={i * 70} className="bg-card">
+              <div className="flex h-full flex-col p-6">
                 <div className="flex items-center gap-2">
                   <span className="rounded border border-border bg-secondary px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase text-muted-foreground">
                     {e.method}

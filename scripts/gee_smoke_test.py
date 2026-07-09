@@ -6,9 +6,9 @@ Authenticates with Google Earth Engine using the configured service account
 number on success; prints actionable setup guidance if GEE is not configured.
 
     # Set the service-account credentials first (see docs/google_earth_engine_setup.md):
-    export PRISM_EARTH_ENGINE_SERVICE_ACCOUNT="prism-earth-gee@<project>.iam.gserviceaccount.com"
-    export PRISM_EARTH_ENGINE_KEY_FILE="/absolute/path/to/key.json"
-    export PRISM_EARTH_ENGINE_PROJECT="<project-id>"   # optional
+    export TERRA_EARTH_ENGINE_SERVICE_ACCOUNT="terra-gee@<project>.iam.gserviceaccount.com"
+    export TERRA_EARTH_ENGINE_KEY_FILE="/absolute/path/to/key.json"
+    export TERRA_EARTH_ENGINE_PROJECT="<project-id>"   # optional
 
     python scripts/gee_smoke_test.py [LAT] [LNG]
 """
@@ -38,7 +38,7 @@ def main(lat: float, lng: float) -> int:
     if not settings.earth_engine_configured:
         print(
             "Earth Engine is not configured.\n"
-            "Set PRISM_EARTH_ENGINE_SERVICE_ACCOUNT and PRISM_EARTH_ENGINE_KEY_FILE,\n"
+            "Set TERRA_EARTH_ENGINE_SERVICE_ACCOUNT and TERRA_EARTH_ENGINE_KEY_FILE,\n"
             "then re-run. See docs/google_earth_engine_setup.md for the GCP steps.",
             file=sys.stderr,
         )

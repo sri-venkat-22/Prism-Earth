@@ -81,7 +81,7 @@ class InMemoryEphemeralStore:
 class RedisEphemeralStore:
     """Redis-backed ephemeral store (SRS §23)."""
 
-    def __init__(self, client: aioredis.Redis, *, namespace: str = "prism:auth:") -> None:
+    def __init__(self, client: aioredis.Redis, *, namespace: str = "terra:auth:") -> None:
         self._redis = client
         self._ns = namespace
 

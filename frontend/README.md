@@ -1,4 +1,4 @@
-# Prism Earth — Frontend
+# Terra — Frontend
 
 Next.js (App Router) + TypeScript + Tailwind + ShadCN (SRS §9, §12).
 **Phase 6** delivers the full user experience in the browser, consuming only the

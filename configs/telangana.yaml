@@ -23,15 +23,29 @@ bbox:
   min_lng: 77.2
   max_lng: 81.4
 
-# Datasets integrated for the MVP (SRS §24.2).
+# Datasets integrated for the MVP (SRS §24.2). This list names ONLY the sources
+# the runtime actually queries and cites (Phase 10 data-integrity rule): the
+# India-specific sources the SRS originally named have no open bulk/API access
+# and are substituted with open global datasets until an accessible source or a
+# data-sharing agreement lands — ISRO CartoDEM → Copernicus DEM GLO-30,
+# CWC/NRSC flood & waterbodies → JRC GloFAS + JRC GSW + OpenStreetMap,
+# NASA FIRMS → VIIRS VNP14A1 (sampled via Earth Engine), Bhu Bharati cadastral →
+# pending an agreement (region-gated fields return typed nulls).
 supported_datasets:
-  - ISRO CartoDEM
+  - Copernicus DEM GLO-30
   - Copernicus Sentinel-2
+  - MODIS Vegetation Indices (MOD13Q1)
+  - ESA WorldCover
   - TerraClimate
-  - CWC Flood Data
-  - NRSC Waterbody Database
-  - NASA FIRMS
+  - ERA5
+  - JRC Global River Flood Hazard Maps
+  - JRC Global Surface Water
+  - VIIRS Active Fires (VNP14A1)
+  - OpenStreetMap
+  - Google Open Buildings
   - Survey of India Administrative Boundaries
+  - Urban Local Body Boundaries (SBM-MoHUA / GHMC)
+  - GHMC Ward Boundaries
 
 # Region-gated fields enabled only inside Telangana (SRS §24.3). Outside the
 # boundary these return null with the catalog's configured null_meaning. Each
@@ -66,10 +80,10 @@ seed:
     villages: villages.geojson
     municipalities: municipalities.geojson
     wards: wards.geojson
+  # Flood hazard is served live from JRC GloFAS via Earth Engine (no PostGIS
+  # flood layer); waterbodies are seeded from OpenStreetMap (Phase 10-C).
   hazards:
-    flood_zones: flood_zones.geojson
     water_bodies: water_bodies.geojson
-    historical_floods: historical_floods.geojson
   infrastructure:
     roads: roads.geojson
     railways: railways.geojson

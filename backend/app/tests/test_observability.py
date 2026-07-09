@@ -26,8 +26,8 @@ def test_metrics_endpoint_exposes_prometheus_text(client: TestClient) -> None:
     assert resp.status_code == 200
     assert "text/plain" in resp.headers["content-type"]
     body = resp.text
-    assert "prism_http_requests_total" in body
-    assert "prism_http_request_duration_seconds" in body
+    assert "terra_http_requests_total" in body
+    assert "terra_http_request_duration_seconds" in body
 
 
 def test_metrics_label_uses_route_template(client: TestClient) -> None:
@@ -54,12 +54,12 @@ def test_domain_metric_helpers_publish_series() -> None:
     observe_pipeline_stage("planner", 0.03)
 
     dump = generate_latest().decode()
-    assert 'prism_connector_health{connector="unit_test_connector"} 1.0' in dump
-    assert 'prism_connector_health{connector="unit_test_connector_down"} 0.0' in dump
-    assert 'prism_cache_events_total{cache="fetch",result="hit"}' in dump
-    assert 'prism_cache_events_total{cache="fetch",result="miss"}' in dump
-    assert "prism_gee_request_duration_seconds" in dump
-    assert 'prism_pipeline_stage_duration_seconds_count{stage="planner"}' in dump
+    assert 'terra_connector_health{connector="unit_test_connector"} 1.0' in dump
+    assert 'terra_connector_health{connector="unit_test_connector_down"} 0.0' in dump
+    assert 'terra_cache_events_total{cache="fetch",result="hit"}' in dump
+    assert 'terra_cache_events_total{cache="fetch",result="miss"}' in dump
+    assert "terra_gee_request_duration_seconds" in dump
+    assert 'terra_pipeline_stage_duration_seconds_count{stage="planner"}' in dump
 
 
 def test_timer_measures_elapsed() -> None:

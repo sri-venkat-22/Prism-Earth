@@ -55,6 +55,7 @@ def build_fake_pipeline(
     context: SpatialContext | None = None,
     synthesizer: Synthesizer | None = None,
     llm: FakeLLM | None = None,
+    deadline_seconds: float | None = None,
 ) -> tuple[AskPipeline, FakeLLM]:
     """Assemble an :class:`AskPipeline` from a scripted LLM + fake connectors."""
     catalog = get_catalog()
@@ -63,6 +64,10 @@ def build_fake_pipeline(
     orchestrator = build_full_orchestrator(context or make_context())
     synth = synthesizer or LLMSynthesizer(llm=client)
     pipeline = AskPipeline(
-        planner=planner, orchestrator=orchestrator, synthesizer=synth, catalog=catalog
+        planner=planner,
+        orchestrator=orchestrator,
+        synthesizer=synth,
+        catalog=catalog,
+        deadline_seconds=deadline_seconds,
     )
     return pipeline, client

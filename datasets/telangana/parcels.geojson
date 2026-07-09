@@ -1,7 +1,7 @@
 {
   "type": "FeatureCollection",
   "name": "telangana_parcels",
-  "note": "SRS §24.3/§24.4 — sample cadastral survey parcels (pilot-region only).",
+  "note": "DEV FIXTURE — hand-authored, NON-AUTHORITATIVE sample parcel. Not Bhu Bharati data. Seeded only when TERRA_ENABLE_DEV_FIXTURES=true (never in production); see scripts/seed_telangana.py.",
   "features": [
     {
       "type": "Feature",

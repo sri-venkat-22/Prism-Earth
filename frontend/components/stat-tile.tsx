@@ -32,7 +32,7 @@ export function StatTile({
         />
       )}
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="mono-eyebrow">{label}</p>
         {icon && <span className="text-muted-foreground/80">{icon}</span>}
       </div>
       <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight">{value}</p>

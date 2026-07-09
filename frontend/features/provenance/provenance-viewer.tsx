@@ -113,7 +113,7 @@ export function ProvenanceViewer({
       <div className="scrollbar-thin overflow-x-auto rounded-xl border border-border">
         <table className="w-full min-w-[720px] border-collapse text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <tr className="mono-eyebrow border-b border-border bg-muted/40 text-left">
               <th className="px-3 py-2 font-medium">Field</th>
               <th className="px-3 py-2 font-medium">Value</th>
               <th className="px-3 py-2 font-medium">Dataset · Version</th>
@@ -153,6 +153,14 @@ export function ProvenanceViewer({
                     {r.prov.dataset_version && (
                       <div className="font-mono text-[11px] text-muted-foreground">
                         {r.prov.dataset_version}
+                      </div>
+                    )}
+                    {r.prov.derivation && (
+                      <div
+                        className="mt-0.5 text-[11px] text-muted-foreground"
+                        title={r.prov.derivation}
+                      >
+                        Derived by Terra
                       </div>
                     )}
                   </td>

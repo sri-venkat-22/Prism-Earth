@@ -1,4 +1,4 @@
-// API client for the Prism Earth public REST surface (SRS §13).
+// API client for the Terra public REST surface (SRS §13).
 //
 // The frontend consumes REST only and contains no business logic (SRS §38.5):
 // every endpoint here is a thin transport wrapper that returns exactly what the
@@ -21,6 +21,36 @@ import type {
 } from "@/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
+
+// --------------------------------------------------------------------------- //
+// Bearer-token handling (SRS §13.20)                                          //
+// --------------------------------------------------------------------------- //
+// When the backend runs with auth enabled, POST /fetch and /ask require a
+// bearer token (metadata stays public). The token is user-supplied (issued via
+// the admin-gated /auth/tokens flow), kept in localStorage, and attached to
+// every request. It is never bundled at build time — NEXT_PUBLIC_* would ship
+// a secret to every visitor.
+const TOKEN_STORAGE_KEY = "terra.api_token";
+
+export function getApiToken(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(TOKEN_STORAGE_KEY);
+  } catch {
+    return null; // storage unavailable (private mode / disabled)
+  }
+}
+
+export function setApiToken(token: string | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    const trimmed = token?.trim();
+    if (trimmed) window.localStorage.setItem(TOKEN_STORAGE_KEY, trimmed);
+    else window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+  } catch {
+    // storage unavailable — the token just won't persist
+  }
+}
 
 /** A structured error carrying the backend's SRS §28.2 envelope when present. */
 export class ApiError extends Error {
@@ -68,15 +98,20 @@ async function parseError(res: Response): Promise<ApiError> {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
+  const token = getApiToken();
   try {
     res = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
-      headers: { Accept: "application/json", ...init?.headers },
+      headers: {
+        Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...init?.headers,
+      },
       cache: "no-store",
     });
   } catch (cause) {
     // Network-level failure (backend down, CORS, DNS). Surface a clear message.
-    throw new ApiError(0, "Cannot reach the Prism Earth API. Is the backend running?", {
+    throw new ApiError(0, "Cannot reach the Terra API. Is the backend running?", {
       code: "NETWORK_ERROR",
     });
   }

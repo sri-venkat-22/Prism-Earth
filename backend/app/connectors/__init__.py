@@ -13,7 +13,7 @@ Version-1 wiring (nine layers, nine connectors):
 - **PostGIS spatial** (SRS §20.4): Administrative (§18.8), Infrastructure and
   Utilities (§18.7), and Cadastral (§18.9, region-gated §24.3).
 - **Hybrid**: Natural Hazard (§18.6) combines JRC/VIIRS raster sampling with
-  CWC/NRSC vector queries.
+  OpenStreetMap waterbody vector queries.
 
 Each connector depends on an injected *source* protocol, so the whole layer is
 unit-testable with fakes (no live PostGIS or Earth Engine); the real sources are
@@ -22,6 +22,8 @@ fetch time rather than at construction (SRS §15.16).
 """
 
 from __future__ import annotations
+
+from functools import lru_cache
 
 from app.connectors.administrative import AdministrativeConnector
 from app.connectors.base import (
@@ -80,7 +82,7 @@ from app.connectors.utilities import (
     UtilitiesSample,
     UtilitiesSource,
 )
-from app.metadata.catalog import Catalog
+from app.metadata.catalog import Catalog, get_catalog
 
 
 def build_default_connectors() -> list[BaseConnector]:
@@ -110,6 +112,18 @@ def build_connector_registry(
     """Build the catalog-driven Connector Registry (SRS §18.10)."""
     chosen = connectors if connectors is not None else build_default_connectors()
     return ConnectorRegistry(catalog, chosen)
+
+
+@lru_cache(maxsize=1)
+def get_default_connector_registry() -> ConnectorRegistry:
+    """The process-wide registry over the default fleet (SRS §18.10).
+
+    Connectors are stateless adapters whose clients (GEE, PostGIS sessionmaker)
+    are lazily created process-wide singletons, so one registry instance safely
+    serves every request — health and fetch previously rebuilt the whole fleet
+    per request for no benefit.
+    """
+    return ConnectorRegistry(get_catalog(), build_default_connectors())
 
 
 __all__ = [
@@ -170,4 +184,5 @@ __all__ = [
     # Builders
     "build_default_connectors",
     "build_connector_registry",
+    "get_default_connector_registry",
 ]

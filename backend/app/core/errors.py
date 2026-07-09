@@ -107,6 +107,18 @@ class ConnectorError(AppError):
     message = "A connector failed."
 
 
+class DeadlineExceededError(AppError):
+    """The request exceeded its end-to-end processing deadline (SRS §7.1).
+
+    Raised instead of holding a request open indefinitely when a downstream
+    dependency (LLM provider, Earth Engine) stalls past the configured budget.
+    """
+
+    code = "DEADLINE_EXCEEDED"
+    status_code = 504
+    message = "The request could not be completed within the processing deadline."
+
+
 class InternalError(AppError):
     code = "INTERNAL_ERROR"
     status_code = 500

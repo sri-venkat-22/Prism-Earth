@@ -1,4 +1,4 @@
-# Prism Earth image publishing (SRS §31.1 "Docker build → deployment", §33.2).
+# Terra image publishing (SRS §31.1 "Docker build → deployment", §33.2).
 #
 # Builds and pushes the backend and frontend container images to the GitHub
 # Container Registry (GHCR) on a version tag (v1.2.3) or manual dispatch. The CI
@@ -40,7 +40,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/prism-earth-${{ matrix.name }}
+          images: ghcr.io/${{ github.repository_owner }}/terra-${{ matrix.name }}
           tags: |
             type=ref,event=tag
             type=semver,pattern={{version}}

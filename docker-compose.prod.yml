@@ -1,4 +1,4 @@
-# Prism Earth — production topology (SRS §33.1, §33.2).
+# Terra — production topology (SRS §33.1, §33.2).
 #
 # Users → Nginx (reverse proxy, TLS-ready) → frontend (Next.js) + backend
 # (FastAPI, multi-worker) → Redis + PostGIS. No source bind mounts; images are
@@ -8,19 +8,25 @@
 #
 # Add the monitoring stack with the overlay:
 #   docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml up -d
+#
+# NOTE: this is a SINGLE-NODE topology — the db, redis, and nginx services are
+# each a single point of failure. For production-grade availability point
+# TERRA_POSTGRES_*/TERRA_REDIS_URL at managed, replicated services and run ≥2
+# backend replicas; see "Single points of failure & HA expectations" in
+# docs/deployment.md.
 services:
   db:
     image: postgis/postgis:16-3.4
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-prism}
+      POSTGRES_USER: ${POSTGRES_USER:-terra}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
-      POSTGRES_DB: ${POSTGRES_DB:-prism_earth}
+      POSTGRES_DB: ${POSTGRES_DB:-terra}
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-prism} -d ${POSTGRES_DB:-prism_earth}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-terra} -d ${POSTGRES_DB:-terra}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -44,35 +50,35 @@ services:
       context: ./backend
     command: ["alembic", "upgrade", "head"]
     environment: &backend_env
-      PRISM_APP_ENV: production
-      PRISM_DEBUG: "false"
-      PRISM_LOG_JSON: "true"
-      PRISM_POSTGRES_HOST: db
-      PRISM_POSTGRES_PORT: "5432"
-      PRISM_POSTGRES_USER: ${POSTGRES_USER:-prism}
-      PRISM_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
-      PRISM_POSTGRES_DB: ${POSTGRES_DB:-prism_earth}
-      PRISM_REDIS_URL: redis://redis:6379/0
-      PRISM_CONFIG_DIR: /configs
-      PRISM_AUTH_USE_REDIS: "true"
-      PRISM_METRICS_ENABLED: "true"
-      PRISM_RATE_LIMIT_ENABLED: "true"
+      TERRA_APP_ENV: production
+      TERRA_DEBUG: "false"
+      TERRA_LOG_JSON: "true"
+      TERRA_POSTGRES_HOST: db
+      TERRA_POSTGRES_PORT: "5432"
+      TERRA_POSTGRES_USER: ${POSTGRES_USER:-terra}
+      TERRA_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      TERRA_POSTGRES_DB: ${POSTGRES_DB:-terra}
+      TERRA_REDIS_URL: redis://redis:6379/0
+      TERRA_CONFIG_DIR: /configs
+      TERRA_AUTH_USE_REDIS: "true"
+      TERRA_METRICS_ENABLED: "true"
+      TERRA_RATE_LIMIT_ENABLED: "true"
       # Secure-by-default production posture (SRS §13.20, §29.3). Auth is ON
       # unless explicitly overridden, and the app refuses to start with it off in
       # production. A bootstrap admin token is REQUIRED to issue tokens.
-      PRISM_AUTH_ENABLED: ${PRISM_AUTH_ENABLED:-true}
-      PRISM_AUTH_ADMIN_TOKEN: ${PRISM_AUTH_ADMIN_TOKEN:?set PRISM_AUTH_ADMIN_TOKEN in .env to bootstrap token issuance}
+      TERRA_AUTH_ENABLED: ${TERRA_AUTH_ENABLED:-true}
+      TERRA_AUTH_ADMIN_TOKEN: ${TERRA_AUTH_ADMIN_TOKEN:?set TERRA_AUTH_ADMIN_TOKEN in .env to bootstrap token issuance}
       # CORS: default to same-origin only ("[]"). The frontend is served through
       # Nginx on the same origin, so no cross-origin entry is needed; set a JSON
       # allow-list here only for a separate browser app. Wildcard is rejected in
       # production.
-      PRISM_CORS_ORIGINS: ${PRISM_CORS_ORIGINS:-[]}
+      TERRA_CORS_ORIGINS: ${TERRA_CORS_ORIGINS:-[]}
       # The app sits behind Nginx, which sets a trustworthy X-Real-IP, so honor
       # the forwarded client IP for rate-limit keying (spoof-safe, SRS §13.19).
-      PRISM_TRUST_PROXY_HEADERS: "true"
+      TERRA_TRUST_PROXY_HEADERS: "true"
       # Opt-in tracing — supply via .env in production (SRS §27.3).
-      PRISM_OTEL_ENABLED: ${PRISM_OTEL_ENABLED:-false}
-      PRISM_OTEL_EXPORTER_ENDPOINT: ${PRISM_OTEL_EXPORTER_ENDPOINT:-}
+      TERRA_OTEL_ENABLED: ${TERRA_OTEL_ENABLED:-false}
+      TERRA_OTEL_EXPORTER_ENDPOINT: ${TERRA_OTEL_EXPORTER_ENDPOINT:-}
     volumes:
       - ./configs:/configs:ro
     depends_on:
@@ -88,10 +94,10 @@ services:
       # GEE credentials are mounted as a Docker secret at /run/secrets/gee_key —
       # never baked into the image or committed (SRS §19.3, §29.2). Only the
       # backend needs them; the migrate job does not. Rotate the key before
-      # exposure and replace ./secrets/prism-earth-gee.json from your key store.
-      PRISM_EARTH_ENGINE_SERVICE_ACCOUNT: ${GEE_SERVICE_ACCOUNT:-}
-      PRISM_EARTH_ENGINE_PROJECT: ${GEE_PROJECT:-}
-      PRISM_EARTH_ENGINE_KEY_FILE: /run/secrets/gee_key
+      # exposure and replace ./secrets/terra-gee.json from your key store.
+      TERRA_EARTH_ENGINE_SERVICE_ACCOUNT: ${GEE_SERVICE_ACCOUNT:-}
+      TERRA_EARTH_ENGINE_PROJECT: ${GEE_PROJECT:-}
+      TERRA_EARTH_ENGINE_KEY_FILE: /run/secrets/gee_key
     secrets:
       - gee_key
     volumes:
@@ -152,4 +158,4 @@ volumes:
 # or baked into an image.
 secrets:
   gee_key:
-    file: ./secrets/prism-earth-gee.json
+    file: ./secrets/terra-gee.json

@@ -11,6 +11,7 @@ from __future__ import annotations
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ask.pipeline import AskPipeline
+from app.core.config import get_settings
 from app.fetchers import FetchOrchestrator, build_fetch_orchestrator
 from app.llm import LLMClient, build_llm_client
 from app.metadata.catalog import get_catalog
@@ -39,6 +40,7 @@ def build_ask_pipeline(
         orchestrator=orchestrator or build_fetch_orchestrator(session),
         synthesizer=synthesizer or LLMSynthesizer(llm=client),
         catalog=catalog,
+        deadline_seconds=get_settings().ask_deadline_seconds,
     )
 
 

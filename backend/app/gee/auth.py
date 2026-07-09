@@ -48,8 +48,8 @@ def initialize_earth_engine(
         raise AuthenticationError(
             "Earth Engine is not configured.",
             details=(
-                "Set PRISM_EARTH_ENGINE_SERVICE_ACCOUNT and "
-                "PRISM_EARTH_ENGINE_KEY_FILE (SRS §19.3)."
+                "Set TERRA_EARTH_ENGINE_SERVICE_ACCOUNT and "
+                "TERRA_EARTH_ENGINE_KEY_FILE (SRS §19.3)."
             ),
         )
 

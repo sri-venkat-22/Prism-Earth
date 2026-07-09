@@ -93,7 +93,7 @@ export function DatasetExplorer({ className }: { className?: string }) {
         <EmptyState icon={<Database className="h-8 w-8" />} title="No fields match your filters" />
       ) : (
         <div className="overflow-hidden rounded-xl border border-border">
-          <div className="hidden grid-cols-[1.5fr_1fr_0.8fr_1fr_1.2fr_auto] gap-3 border-b border-border bg-muted/40 px-4 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground md:grid">
+          <div className="mono-eyebrow hidden grid-cols-[1.5fr_1fr_0.8fr_1fr_1.2fr_auto] gap-3 border-b border-border bg-muted/40 px-4 py-2 md:grid">
             <span>Field</span>
             <span>Layer</span>
             <span>Lifecycle</span>

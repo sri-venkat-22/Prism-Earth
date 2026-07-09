@@ -88,6 +88,11 @@ class OAuthClientRecord:
     token_endpoint_auth_method: str = "none"  # noqa: S105 - OAuth field name, not a secret
     client_secret_hash: str | None = None
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    # True when the client came through open (unauthenticated) RFC 7591
+    # registration — the low-trust MCP surface. Its tokens carry the reduced
+    # self-registered rate budget (§13.20 trust model). Admin-registered
+    # clients are operator-vetted and get default budgets.
+    self_registered: bool = True
 
     @property
     def is_public(self) -> bool:
@@ -288,6 +293,7 @@ class SqlClientStore:
             token_endpoint_auth_method=row.token_endpoint_auth_method,
             client_secret_hash=row.client_secret_hash,
             created_at=row.created_at,
+            self_registered=row.self_registered,
         )
 
     async def create(self, record: OAuthClientRecord) -> None:
@@ -301,6 +307,7 @@ class SqlClientStore:
                 scopes=_scopes_to_str(record.scopes),
                 token_endpoint_auth_method=record.token_endpoint_auth_method,
                 created_at=record.created_at,
+                self_registered=record.self_registered,
             )
         )
         await self._session.commit()

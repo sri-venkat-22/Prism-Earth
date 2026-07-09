@@ -39,18 +39,18 @@ _LATENCY_BUCKETS = (0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.
 # HTTP metrics (SRS §27.2 — API latency, request volume, error rate)          #
 # --------------------------------------------------------------------------- #
 HTTP_REQUESTS = Counter(
-    "prism_http_requests_total",
+    "terra_http_requests_total",
     "Total HTTP requests.",
     labelnames=("method", "route", "status"),
 )
 HTTP_REQUEST_DURATION = Histogram(
-    "prism_http_request_duration_seconds",
+    "terra_http_request_duration_seconds",
     "HTTP request latency in seconds.",
     labelnames=("method", "route"),
     buckets=_LATENCY_BUCKETS,
 )
 HTTP_IN_PROGRESS = Gauge(
-    "prism_http_requests_in_progress",
+    "terra_http_requests_in_progress",
     "In-flight HTTP requests.",
     labelnames=("method", "route"),
 )
@@ -59,25 +59,31 @@ HTTP_IN_PROGRESS = Gauge(
 # Domain metrics (SRS §27.2 — connector health, GEE time, cache, pipeline)     #
 # --------------------------------------------------------------------------- #
 CONNECTOR_HEALTH = Gauge(
-    "prism_connector_health",
+    "terra_connector_health",
     "Connector health (1 = ok, 0 = degraded/down).",
     labelnames=("connector",),
 )
 GEE_REQUEST_DURATION = Histogram(
-    "prism_gee_request_duration_seconds",
+    "terra_gee_request_duration_seconds",
     "Google Earth Engine request latency in seconds.",
     buckets=_LATENCY_BUCKETS,
 )
 CACHE_EVENTS = Counter(
-    "prism_cache_events_total",
+    "terra_cache_events_total",
     "Cache lookups by outcome (for the cache hit ratio).",
     labelnames=("cache", "result"),
 )
 PIPELINE_STAGE_DURATION = Histogram(
-    "prism_pipeline_stage_duration_seconds",
+    "terra_pipeline_stage_duration_seconds",
     "AI pipeline stage latency in seconds (planner, fetch, synthesizer).",
     labelnames=("stage",),
     buckets=_LATENCY_BUCKETS,
+)
+PLANNER_DROPPED_PROPOSALS = Counter(
+    "terra_planner_dropped_proposals_total",
+    "Planner proposals dropped by the catalog constraint (SRS §14.15), by kind. "
+    "A rising rate signals planner-prompt drift or a catalog mismatch.",
+    labelnames=("kind",),
 )
 
 _EXCLUDED_PATHS = frozenset({"/metrics"})
@@ -160,6 +166,12 @@ def observe_pipeline_stage(stage: str, seconds: float) -> None:
     PIPELINE_STAGE_DURATION.labels(stage=stage).observe(seconds)
 
 
+def record_planner_drop(kind: str) -> None:
+    """Count one dropped planner proposal (unknown_field / planned_field /
+    unknown_preset) so prompt drift or a catalog mismatch is observable (§27.2)."""
+    PLANNER_DROPPED_PROPOSALS.labels(kind=kind).inc()
+
+
 # Re-exported for callers that want to time a block without importing timeit.
 def timer() -> Callable[[], float]:
     """Return a function that yields elapsed seconds since this call."""
@@ -174,5 +186,6 @@ __all__ = [
     "observe_gee_duration",
     "record_cache_event",
     "observe_pipeline_stage",
+    "record_planner_drop",
     "timer",
 ]

@@ -180,7 +180,7 @@ function Composer({
   }, [question]);
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-2 shadow-sm transition-shadow focus-within:border-foreground/25 focus-within:shadow-md">
+    <div className="rounded-lg border border-border bg-card p-2 transition-colors focus-within:border-foreground/25">
       <textarea
         ref={ref}
         value={question}

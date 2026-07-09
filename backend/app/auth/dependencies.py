@@ -163,10 +163,34 @@ async def require_admin(request: Request) -> None:
     settings = _settings(request)
     if not settings.auth_admin_token:
         raise AppError(
-            "Token management is not configured (set PRISM_AUTH_ADMIN_TOKEN).",
+            "Token management is not configured (set TERRA_AUTH_ADMIN_TOKEN).",
             code="NOT_CONFIGURED",
             status_code=503,
         )
     provided = _bearer_token(request) or request.headers.get("X-Admin-Token")
     if not provided or not secrets.compare_digest(provided, settings.auth_admin_token):
         raise AuthenticationError("A valid admin credential is required.")
+
+
+def is_admin_request(request: Request) -> bool:
+    """Whether the request carries a valid admin credential (never raises)."""
+    settings = _settings(request)
+    if not settings.auth_admin_token:
+        return False
+    provided = _bearer_token(request) or request.headers.get("X-Admin-Token")
+    return bool(provided and secrets.compare_digest(provided, settings.auth_admin_token))
+
+
+async def gate_client_registration(request: Request) -> bool:
+    """Enforce the client-registration trust model (SRS §13.20, audit 12-B).
+
+    Returns True when the caller presented a valid admin credential — the
+    client is then recorded as operator-vetted (``self_registered=False``).
+    With ``auth_open_client_registration=false``, anonymous registration is
+    refused: a valid admin credential becomes mandatory, so every OAuth client
+    that exists was authorized by an operator.
+    """
+    admin = is_admin_request(request)
+    if not admin and not _settings(request).auth_open_client_registration:
+        await require_admin(request)  # raises 401 (bad credential) or 503 (unconfigured)
+    return admin

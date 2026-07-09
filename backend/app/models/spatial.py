@@ -126,22 +126,15 @@ class Ward(Base):
 
 
 # --------------------------------------------------------------------------- #
-# hazards — flood & water layers (SRS §20.4 Natural Hazards, §24.4)            #
+# hazards — water layers (SRS §20.4 Natural Hazards, §24.4)                    #
 # --------------------------------------------------------------------------- #
-class FloodHazardZone(Base):
-    """Flood hazard zone polygon (SRS §20.4, §24.4)."""
-
-    __tablename__ = "flood_hazard_zone"
-    __table_args__ = (_gist("flood_hazard_zone", "hazards"), {"schema": "hazards"})
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    hazard_class: Mapped[str] = mapped_column(String(32), nullable=False)
-    name: Mapped[str | None] = mapped_column(String(128))
-    geom: Mapped[WKBElement] = _geom("MULTIPOLYGON")
-
-
+# The former FloodHazardZone / HistoricalFlood tables were removed in Phase
+# 10-C: they held hand-drawn placeholder rectangles labelled "CWC" that no
+# connector ever read (no open bulk CWC/NRSC layer exists for Telangana), and
+# flood fields are served live from JRC GloFAS via Earth Engine instead
+# (app/connectors/natural_hazard.py). Migration 0006 drops the tables.
 class WaterBody(Base):
-    """Water body polygon (SRS §20.4, §24.2 NRSC Waterbody Database)."""
+    """Water body polygon (SRS §20.4) — seeded from OpenStreetMap."""
 
     __tablename__ = "water_body"
     __table_args__ = (_gist("water_body", "hazards"), {"schema": "hazards"})
@@ -149,18 +142,6 @@ class WaterBody(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str | None] = mapped_column(String(128))
     kind: Mapped[str | None] = mapped_column(String(32))
-    geom: Mapped[WKBElement] = _geom("MULTIPOLYGON")
-
-
-class HistoricalFlood(Base):
-    """Historical flood extent polygon (SRS §20.4, §24.2 CWC Flood Data)."""
-
-    __tablename__ = "historical_flood"
-    __table_args__ = (_gist("historical_flood", "hazards"), {"schema": "hazards"})
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    event_name: Mapped[str | None] = mapped_column(String(128))
-    year: Mapped[int | None] = mapped_column(Integer)
     geom: Mapped[WKBElement] = _geom("MULTIPOLYGON")
 
 

@@ -1,4 +1,4 @@
-"""Prism Earth MCP server package (SRS §34).
+"""Terra MCP server package (SRS §34).
 
 Exposes the platform to AI clients over the Model Context Protocol as a thin
 client over the REST API. The FastMCP server (:func:`app.mcp.server.build_server`)

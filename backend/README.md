@@ -1,6 +1,6 @@
-# Prism Earth — Backend
+# Terra — Backend
 
-FastAPI + async SQLAlchemy backend for Prism Earth (SRS §9, §11). Through
+FastAPI + async SQLAlchemy backend for Terra (SRS §9, §11). Through
 **Phase 2** it provides: configuration, structured logging, the standard error
 model, health endpoints; the Metadata Catalog + State Registry (Phase 1); and the
 **spatial data layer** — PostGIS schema/migrations, the Telangana seed, the State
@@ -70,4 +70,4 @@ uv run alembic revision --autogenerate -m "message"
 uv run alembic upgrade head
 ```
 
-Configuration is environment-driven (prefix `PRISM_`); see `.env.example`.
+Configuration is environment-driven (prefix `TERRA_`); see `.env.example`.

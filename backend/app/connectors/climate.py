@@ -11,12 +11,12 @@ live credentials), and each field cites the exact dataset that produced it
 
 from __future__ import annotations
 
-import asyncio
 import math
 from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict
 
+from app.connectors._concurrency import run_blocking
 from app.connectors.base import (
     BaseConnector,
     Confidence,
@@ -149,7 +149,7 @@ class ClimateConnector(BaseConnector):
     async def fetch(self, fields: list[str], context: FetchContext) -> list[FieldResult]:
         await self.validate(fields)
         # GEE calls are blocking; run them off the event loop (SRS §15.12).
-        sample = await asyncio.to_thread(self._source.sample, context.lat, context.lng)
+        sample = await run_blocking(self._source.sample, context.lat, context.lng)
         values = sample.model_dump()
 
         results: list[FieldResult] = []

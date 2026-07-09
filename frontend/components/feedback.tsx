@@ -1,10 +1,13 @@
-import type { ReactNode } from "react";
-import { AlertTriangle, Inbox, Loader2 } from "lucide-react";
+"use client";
+
+import { useState, type ReactNode } from "react";
+import { AlertTriangle, Inbox, KeyRound, Loader2 } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ApiError } from "@/services/api";
+import { ApiError, getApiToken, setApiToken } from "@/services/api";
 import { cn } from "@/lib/utils";
 
 export function InlineSpinner({ label, className }: { label?: string; className?: string }) {
@@ -46,6 +49,7 @@ export function ErrorState({
       : "An unexpected error occurred.";
   const code = error instanceof ApiError ? error.code : undefined;
   const corr = error instanceof ApiError ? error.correlationId : undefined;
+  const isAuthError = error instanceof ApiError && (error.status === 401 || error.status === 403);
 
   return (
     <Alert variant="danger" className={cn("flex flex-col gap-2", className)}>
@@ -64,14 +68,69 @@ export function ErrorState({
           </AlertDescription>
         </div>
       </div>
-      {onRetry && (
-        <div>
-          <Button size="sm" variant="outline" onClick={onRetry}>
-            Try again
-          </Button>
-        </div>
+      {isAuthError ? (
+        <ApiTokenPrompt onRetry={onRetry} />
+      ) : (
+        onRetry && (
+          <div>
+            <Button size="sm" variant="outline" onClick={onRetry}>
+              Try again
+            </Button>
+          </div>
+        )
       )}
     </Alert>
+  );
+}
+
+/** Inline recovery for 401/403: store a bearer token and retry (SRS §13.20). */
+function ApiTokenPrompt({ onRetry }: { onRetry?: () => void }) {
+  const [draft, setDraft] = useState("");
+  const [hasStored, setHasStored] = useState(() => getApiToken() !== null);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <KeyRound className="h-3.5 w-3.5" aria-hidden />
+        {hasStored
+          ? "The saved API token was rejected. Paste a valid token to continue."
+          : "This deployment requires an API token. Paste one to continue — it is kept in this browser only."}
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          type="password"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="API token"
+          aria-label="API token"
+          className="h-9 w-full max-w-[240px] font-mono text-xs"
+        />
+        <Button
+          size="sm"
+          disabled={!draft.trim()}
+          onClick={() => {
+            setApiToken(draft);
+            setHasStored(true);
+            setDraft("");
+            onRetry?.();
+          }}
+        >
+          Save & retry
+        </Button>
+        {hasStored && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setApiToken(null);
+              setHasStored(false);
+            }}
+          >
+            Clear saved token
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
 

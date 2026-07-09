@@ -5,12 +5,12 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: prism-backend
+  - job_name: terra-backend
     metrics_path: /metrics
     static_configs:
       - targets: ["backend:8000"]
         labels:
-          service: prism-earth-backend
+          service: terra-backend
 
   - job_name: prometheus
     static_configs:

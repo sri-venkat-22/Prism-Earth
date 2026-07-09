@@ -1,5 +1,5 @@
 # Promtail — ships container stdout/stderr to Loki (SRS §27.1).
-# The backend emits JSON logs (PRISM_LOG_JSON=true) with the correlation id, so
+# The backend emits JSON logs (TERRA_LOG_JSON=true) with the correlation id, so
 # log lines correlate with traces and the X-Correlation-ID response header.
 server:
   http_listen_port: 9080

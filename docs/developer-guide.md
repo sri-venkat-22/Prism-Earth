@@ -1,6 +1,6 @@
 # Developer Guide
 
-How to set up, test, and extend Prism Earth (SRS §35).
+How to set up, test, and extend Terra (SRS §35).
 
 ## Prerequisites
 

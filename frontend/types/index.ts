@@ -144,6 +144,10 @@ export interface ProvenanceObject {
   confidence: Confidence;
   null_meaning: string | null;
   reason: string | null;
+  /** Present when the value is a Terra derivation from the cited dataset
+   * (e.g. our banding of GloFAS return-period depths), not a value the dataset
+   * itself publishes. */
+  derivation?: string | null;
 }
 
 export interface Citation {

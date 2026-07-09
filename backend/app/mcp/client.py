@@ -1,4 +1,4 @@
-"""HTTP client for the Prism Earth REST API (SRS §34.2, §11.2).
+"""HTTP client for the Terra REST API (SRS §34.2, §11.2).
 
 The MCP server does not touch the platform internals — it consumes the same
 public REST API as the browser and any other integration (§11.2 API-first). This
@@ -14,17 +14,17 @@ from typing import Any
 import httpx
 
 
-class PrismApiError(RuntimeError):
+class TerraApiError(RuntimeError):
     """A non-2xx response from the REST API, surfaced to the MCP tool caller."""
 
     def __init__(self, status_code: int, body: Any) -> None:
         self.status_code = status_code
         self.body = body
-        super().__init__(f"Prism Earth API returned HTTP {status_code}: {body}")
+        super().__init__(f"Terra API returned HTTP {status_code}: {body}")
 
 
-class PrismClient:
-    """Async client over the Prism Earth REST API."""
+class TerraClient:
+    """Async client over the Terra REST API."""
 
     def __init__(
         self,
@@ -75,7 +75,7 @@ class PrismClient:
         except ValueError:
             payload = {"detail": response.text}
         if response.status_code >= 400:
-            raise PrismApiError(response.status_code, payload)
+            raise TerraApiError(response.status_code, payload)
         assert isinstance(payload, dict)  # noqa: S101 - narrows the decoded JSON type
         return payload
 

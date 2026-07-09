@@ -8,9 +8,12 @@ resolved by point-in-polygon over the containing parcel (SRS §15.7).
 Bhu Bharati (bhubharati.telangana.gov.in) is the Telangana land-records system
 that replaced Dharani in 2025; like its predecessor it offers only a manual,
 single-parcel citizen lookup — no bulk export or API — so there is no path to
-real bulk cadastral data without a government data-sharing agreement. This
-connector therefore serves a small, manually curated dev fixture; production
-deployments require that agreement.
+real bulk cadastral data without a government data-sharing agreement. The only
+data this connector can currently serve is a small, hand-authored dev fixture,
+which the seed loads **only** when ``TERRA_ENABLE_DEV_FIXTURES=true`` (rejected
+in production by ``Settings.validate_runtime``): in production the parcel table
+is empty and every cadastral field resolves to a typed null, so no synthetic
+parcel is ever served under this government citation (SRS §16.4).
 
 Every cadastral field is ``REGION_GATED`` (SRS §24.3): outside Telangana the
 Fetch Orchestrator returns them as ``unsupported_state`` nulls *before* routing,
