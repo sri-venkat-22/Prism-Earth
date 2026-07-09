@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.v1 import ask, auth, fetch, health, meta
+from app.api.v1 import account, ask, auth, fetch, health, meta
 
 api_v1_router = APIRouter()
 api_v1_router.include_router(health.router)
@@ -18,3 +18,4 @@ api_v1_router.include_router(meta.router)
 api_v1_router.include_router(fetch.router)
 api_v1_router.include_router(ask.router)
 api_v1_router.include_router(auth.router)
+api_v1_router.include_router(account.router)

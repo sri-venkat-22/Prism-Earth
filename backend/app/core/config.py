@@ -47,16 +47,19 @@ class Settings(BaseSettings):
 
     # --- CORS ------------------------------------------------------------
     # Cross-origin *browser* access. The bundled frontend is served same-origin
-    # through Nginx (§33.1), so it needs no entry here; this list is only for
-    # separate browser apps hosted on other origins. Non-browser consumers (MCP
-    # HTTP, curl, server-to-server) are unaffected by CORS. The ``*`` wildcard is
-    # a dev convenience and is rejected in production (see ``validate_runtime``).
-    cors_origins: list[str] = ["*"]
-    # Send ``Access-Control-Allow-Credentials``. The API authenticates with
-    # bearer tokens in the Authorization header (not cookies), so this is off by
-    # default. Browsers reject ``*`` + credentials, so the two are never paired
-    # (also enforced in ``validate_runtime``).
-    cors_allow_credentials: bool = False
+    # through Nginx (§33.1) and needs no entry there; this list is for browser
+    # apps on other origins — notably the dev frontend (:3000) calling the API
+    # (:8000). Non-browser consumers (MCP HTTP, curl, server-to-server) are
+    # unaffected by CORS. A ``*`` wildcard is rejected in production (see
+    # ``validate_runtime``); the dev default is the local frontend origin so the
+    # HttpOnly-cookie session works cross-origin.
+    cors_origins: list[str] = ["http://localhost:3000"]
+    # Send ``Access-Control-Allow-Credentials``. The browser session is an
+    # HttpOnly cookie (see ``account_session_ttl_days``), so cross-origin
+    # requests must carry credentials — on by default. Browsers reject ``*`` +
+    # credentials, so the two are never paired (enforced in ``validate_runtime``).
+    # Same-origin production deploys are unaffected either way.
+    cors_allow_credentials: bool = True
 
     # --- PostgreSQL / PostGIS (SRS §20, §22) ----------------------------
     postgres_host: str = "db"
@@ -161,6 +164,27 @@ class Settings(BaseSettings):
     # single-instance dev; Redis is required for horizontal scaling.
     auth_use_redis: bool = False
 
+    # --- End-user accounts / login (SRS §13.20) -------------------------
+    # Human login sits on top of the machine-token system: a signed-in user
+    # gets a bearer token (subject = user id) that also authorizes /fetch and
+    # /ask. Sessions live this long before requiring re-login.
+    account_session_ttl_days: int = 30
+    # Brute-force guard: max register/login attempts per client IP per minute.
+    # Independent of the data-endpoint gateway limit; throttles credential
+    # stuffing at the door (SRS §13.19). Keyed by the same spoof-safe client id.
+    auth_login_rate_limit_per_minute: int = 10
+    # Where the Google OAuth callback redirects the browser after login. The
+    # callback sets the session as an HttpOnly cookie and lands on a clean
+    # /account URL. Must be the frontend origin (not the API).
+    frontend_base_url: str = "http://localhost:3000"
+    # "Sign in with Google" (OAuth 2.0 / OIDC). Create a Web-application OAuth
+    # client at https://console.cloud.google.com/apis/credentials, add
+    # ``{auth_issuer_url}/api/v1/account/google/callback`` as an authorized
+    # redirect URI, and set the id/secret below. When unset, the Google button
+    # is hidden and only email/password login is offered.
+    google_oauth_client_id: str | None = None
+    google_oauth_client_secret: str | None = None
+
     # --- MCP server (SRS §34, §9) ---------------------------------------
     # The MCP server is a thin client over the REST API (§34.2 workflow, §11.2
     # API-first). These configure how it reaches the platform and how it is
@@ -212,6 +236,14 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"
+
+    @property
+    def google_oauth_enabled(self) -> bool:
+        return bool(self.google_oauth_client_id and self.google_oauth_client_secret)
+
+    @property
+    def google_oauth_redirect_uri(self) -> str:
+        return f"{self.auth_issuer_url.rstrip('/')}/api/v1/account/google/callback"
 
     @property
     def earth_engine_configured(self) -> bool:

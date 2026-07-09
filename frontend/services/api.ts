@@ -26,30 +26,42 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8
 // Bearer-token handling (SRS §13.20)                                          //
 // --------------------------------------------------------------------------- //
 // When the backend runs with auth enabled, POST /fetch and /ask require a
-// bearer token (metadata stays public). The token is user-supplied (issued via
-// the admin-gated /auth/tokens flow), kept in localStorage, and attached to
-// every request. It is never bundled at build time — NEXT_PUBLIC_* would ship
-// a secret to every visitor.
+// bearer token (metadata stays public). A manually-pasted API token is kept in
+// localStorage and attached as an Authorization header. It is never bundled at
+// build time — NEXT_PUBLIC_* would ship a secret to every visitor.
+//
+// A signed-in user's *session* is NOT stored here: it lives in an HttpOnly
+// cookie the backend sets on /account/login|register (unreadable by JS, so XSS
+// cannot steal it). Every request below sends `credentials: "include"` so that
+// cookie rides along and also authorizes /fetch and /ask.
 const TOKEN_STORAGE_KEY = "terra.api_token";
 
-export function getApiToken(): string | null {
+function readStored(key: string): string | null {
   if (typeof window === "undefined") return null;
   try {
-    return window.localStorage.getItem(TOKEN_STORAGE_KEY);
+    return window.localStorage.getItem(key);
   } catch {
     return null; // storage unavailable (private mode / disabled)
   }
 }
 
-export function setApiToken(token: string | null): void {
+function writeStored(key: string, value: string | null): void {
   if (typeof window === "undefined") return;
   try {
-    const trimmed = token?.trim();
-    if (trimmed) window.localStorage.setItem(TOKEN_STORAGE_KEY, trimmed);
-    else window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+    const trimmed = value?.trim();
+    if (trimmed) window.localStorage.setItem(key, trimmed);
+    else window.localStorage.removeItem(key);
   } catch {
-    // storage unavailable — the token just won't persist
+    // storage unavailable — the value just won't persist
   }
+}
+
+export function getApiToken(): string | null {
+  return readStored(TOKEN_STORAGE_KEY);
+}
+
+export function setApiToken(token: string | null): void {
+  writeStored(TOKEN_STORAGE_KEY, token);
 }
 
 /** A structured error carrying the backend's SRS §28.2 envelope when present. */
@@ -96,9 +108,9 @@ async function parseError(res: Response): Promise<ApiError> {
   return new ApiError(res.status, `${res.status} ${res.statusText}`);
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function send(path: string, init?: RequestInit): Promise<Response> {
   let res: Response;
-  const token = getApiToken();
+  const token = getApiToken(); // manually-pasted API token; the session is a cookie
   try {
     res = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
@@ -107,6 +119,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...init?.headers,
       },
+      credentials: "include", // send the HttpOnly session cookie cross-origin
       cache: "no-store",
     });
   } catch (cause) {
@@ -118,19 +131,27 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     throw await parseError(res);
   }
-  return (await res.json()) as T;
+  return res;
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  return (await (await send(path, init)).json()) as T;
 }
 
 function get<T>(path: string): Promise<T> {
   return request<T>(path);
 }
 
-function post<T>(path: string, body: unknown): Promise<T> {
-  return request<T>(path, {
-    method: "POST",
+function body(method: string, payload: unknown): RequestInit {
+  return {
+    method,
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+    body: JSON.stringify(payload),
+  };
+}
+
+function post<T>(path: string, payload: unknown): Promise<T> {
+  return request<T>(path, body("POST", payload));
 }
 
 // --------------------------------------------------------------------------- //
@@ -188,5 +209,87 @@ export function getHealth(): Promise<HealthResponse> {
 export function getConnectorsHealth(): Promise<ConnectorsHealthResponse> {
   return get<ConnectorsHealthResponse>("/health/connectors");
 }
+
+// --------------------------------------------------------------------------- //
+// End-user accounts / login (SRS §13.20)                                       //
+// --------------------------------------------------------------------------- //
+export interface AccountUser {
+  id: string;
+  email: string;
+  organization: string | null;
+  created_at: string;
+  has_password: boolean;
+  google_linked: boolean;
+}
+
+export interface AccountToken {
+  id: string;
+  prefix: string;
+  name: string;
+  subject: string;
+  scopes: string[];
+  created_at: string;
+  expires_at: string | null;
+  last_used_at: string | null;
+  revoked: boolean;
+  rate_limit_per_minute: number | null;
+}
+
+export interface AccountTokenCreated extends AccountToken {
+  token: string; // shown only once, at creation
+}
+
+export function getAccountConfig(): Promise<{ google_enabled: boolean }> {
+  return get<{ google_enabled: boolean }>("/account/config");
+}
+
+// Login/register set the session as an HttpOnly cookie (via credentials:include
+// in `send`) and return only the user — the token is never handed to JS.
+export function registerAccount(input: {
+  email: string;
+  password: string;
+  organization?: string | null;
+}): Promise<AccountUser> {
+  return post<AccountUser>("/account/register", input);
+}
+
+export function loginAccount(input: { email: string; password: string }): Promise<AccountUser> {
+  return post<AccountUser>("/account/login", input);
+}
+
+export function getMe(): Promise<AccountUser> {
+  return get<AccountUser>("/account/me");
+}
+
+export function updateMe(input: { organization: string | null }): Promise<AccountUser> {
+  return request<AccountUser>("/account/me", body("PATCH", input));
+}
+
+export async function deleteMe(): Promise<void> {
+  await send("/account/me", { method: "DELETE" });
+}
+
+export async function logoutAccount(): Promise<void> {
+  await send("/account/logout", { method: "POST" });
+}
+
+export async function listMyTokens(): Promise<{ count: number; tokens: AccountToken[] }> {
+  return get<{ count: number; tokens: AccountToken[] }>("/account/tokens");
+}
+
+export function createMyToken(input: {
+  name: string;
+  scopes?: string[];
+  expires_in_days?: number | null;
+}): Promise<AccountTokenCreated> {
+  return post<AccountTokenCreated>("/account/tokens", input);
+}
+
+export async function revokeMyToken(id: string): Promise<void> {
+  await send(`/account/tokens/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+/** URL the browser navigates to for "Sign in with Google" (full-page redirect). */
+export const GOOGLE_LOGIN_URL = `${API_BASE_URL}/account/google/login`;
 
 export { API_BASE_URL };

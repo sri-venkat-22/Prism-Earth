@@ -16,7 +16,7 @@ import secrets
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import Depends, Request
+from fastapi import Depends, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.ratelimit import enforce_rate_limit
@@ -94,6 +94,41 @@ def _bearer_token(request: Request) -> str | None:
     return credential.strip()
 
 
+# Browser session cookie. A signed-in user's bearer token is stored here as an
+# HttpOnly cookie so client JS can never read it (XSS-safe, SRS §13.20); it is
+# not a secret name, hence the noqa.
+SESSION_COOKIE = "terra_session"  # noqa: S105
+
+
+def _request_token(request: Request) -> str | None:
+    """Session token from the ``Authorization`` header, else the session cookie.
+
+    Programmatic clients (CLI, MCP, tests) send the header; the browser holds
+    its session only as the HttpOnly cookie. The header wins when both are
+    present. Admin extraction deliberately stays header-only — a user session
+    cookie is not an admin credential.
+    """
+    return _bearer_token(request) or request.cookies.get(SESSION_COOKIE)
+
+
+def set_session_cookie(response: Response, token: str, settings: Settings) -> None:
+    """Attach the session token as an HttpOnly cookie (login/register/Google)."""
+    response.set_cookie(
+        SESSION_COOKIE,
+        token,
+        max_age=settings.account_session_ttl_days * 86400,
+        httponly=True,  # not readable by JS → XSS cannot steal the session
+        secure=settings.is_production,  # HTTPS-only in prod; plain http in dev
+        samesite="lax",  # not sent on cross-site POST → CSRF-resistant
+        path="/",
+    )
+
+
+def clear_session_cookie(response: Response) -> None:
+    """Expire the session cookie (logout / account deletion)."""
+    response.delete_cookie(SESSION_COOKIE, path="/")
+
+
 def _unauthenticated(settings: Settings, message: str) -> AuthenticationError:
     # RFC 9728: point MCP clients at the protected-resource metadata so they can
     # discover the authorization server and begin the OAuth flow.
@@ -121,7 +156,7 @@ def require_auth(*required_scopes: str) -> object:
             request.state.principal = principal
             return principal
 
-        token = _bearer_token(request)
+        token = _request_token(request)
         if token is None:
             raise _unauthenticated(settings, "A bearer token is required.")
 

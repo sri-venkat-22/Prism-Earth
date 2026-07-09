@@ -47,6 +47,27 @@ class ApiTokenRow(Base):
     rate_limit_per_minute: Mapped[int | None] = mapped_column(Integer)
 
 
+class UserRow(Base):
+    """A registered end-user account (email/password + optional Google login).
+
+    Passwords are stored only as a scrypt digest (never plaintext) in
+    ``password_hash``; it is ``NULL`` for Google-only accounts. ``google_sub`` is
+    Google's stable subject identifier, set when the account is linked to a
+    Google login. A user's session and issued API tokens live in ``api_token``
+    with ``subject == user.id`` — there is no separate session table.
+    """
+
+    __tablename__ = "user"
+    __table_args__ = _SCHEMA
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    email: Mapped[str] = mapped_column(String(320), nullable=False, unique=True)
+    password_hash: Mapped[str | None] = mapped_column(String(255))
+    organization: Mapped[str | None] = mapped_column(String(128))
+    google_sub: Mapped[str | None] = mapped_column(String(64), unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class OAuthClientRow(Base):
     """A registered OAuth 2.0 client (RFC 7591, SRS §13.20).
 

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { AlertTriangle, Inbox, KeyRound, Loader2 } from "lucide-react";
+import { AlertTriangle, Inbox, KeyRound } from "lucide-react";
 
+import { OrbitSpinner } from "@/components/layout/logo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,7 @@ import { cn } from "@/lib/utils";
 export function InlineSpinner({ label, className }: { label?: string; className?: string }) {
   return (
     <span className={cn("inline-flex items-center gap-2 text-sm text-muted-foreground", className)}>
-      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+      <OrbitSpinner className="h-4 w-4 text-foreground" />
       {label ?? "Loading…"}
     </span>
   );

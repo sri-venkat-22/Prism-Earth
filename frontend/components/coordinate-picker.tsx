@@ -28,7 +28,7 @@ function parse(value: string): number | null {
 /**
  * A reusable coordinate input surface. It validates lat/lng and writes valid
  * values to the shared location store so the coordinate follows the user across
- * the Ask, Fetch, and Dashboard pages.
+ * the Ask and Fetch pages.
  */
 export function CoordinatePicker({ className }: { className?: string }) {
   const { coordinate, coordinateLabel, setCoordinate, clearCoordinate } = useLocationStore();

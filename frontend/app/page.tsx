@@ -1,16 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 
-import { ErrorState, LoadingBlock } from "@/components/feedback";
+import { TerraMark } from "@/components/layout/logo";
 import { Reveal } from "@/components/reveal";
 import { SectionHeading } from "@/components/section-heading";
 import { TerminalLine, TerminalWindow } from "@/components/terminal-window";
-import { layerMeta } from "@/lib/domain";
 import { useConnectorsHealth, useFields, useLayers, usePresets } from "@/hooks/useMeta";
-
-const USE_CASE_LIMIT = 9;
 
 const DOCS_URL = process.env.NEXT_PUBLIC_API_DOCS_URL ?? "http://localhost:8000/docs";
 
@@ -54,6 +52,44 @@ const FAQ = [
   },
 ];
 
+const ROTATING_WORDS = ["terrain", "climate", "land cover", "natural hazard", "AI agents"];
+
+function RotatingWord() {
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setIndex((i) => (i + 1) % ROTATING_WORDS.length), 1900);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <>
+      <span className="text-brand">{ROTATING_WORDS[index]}</span>
+      <span aria-hidden className="blink-cursor text-brand">
+        |
+      </span>
+    </>
+  );
+}
+
+/** Hero readout card: a LIVE coordinate sample pinned beside the mark. */
+function LiveReadout({ lines, className }: { lines: [string, string][]; className?: string }) {
+  return (
+    <div
+      className={`w-[196px] rounded-md border border-border bg-card p-3 text-left font-mono text-[11px] leading-[1.7] text-muted-foreground shadow-[0_16px_40px_-28px_hsl(var(--foreground)/0.4)] ${className ?? ""}`}
+    >
+      <div className="flex items-center gap-1.5 font-semibold text-danger">
+        <span className="pulse-dot-live inline-block h-1.5 w-1.5 rounded-full bg-danger" />
+        LIVE&nbsp;&nbsp;17.385, 78.486
+      </div>
+      {lines.map(([k, v]) => (
+        <div key={k} className="mt-0.5 flex gap-2">
+          <span className="w-14">{k}</span>
+          <span>{v}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function HomePage() {
   const layers = useLayers();
   const presets = usePresets();
@@ -69,44 +105,95 @@ export default function HomePage() {
 
   return (
     <div className="space-y-24 sm:space-y-32">
-      {/* Hero */}
-      <section className="grid items-center gap-12 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
-        <div className="animate-fade-up">
-          <p className="mono-eyebrow mb-5">Geospatial ground truth · API</p>
-          <h1 className="font-display text-[clamp(38px,6vw,68px)] font-semibold leading-[1.02] tracking-[-0.02em]">
-            Geospatial ground truth for any Indian coordinate.
-          </h1>
-          <p className="mt-6 max-w-xl text-[17px] leading-relaxed text-muted-foreground">
-            Terra gives AI agents and analysts sourced, citation-backed data for any point —
-            terrain, climate, land cover, hazard, infrastructure and more. Every value is traceable
-            to a dataset. Nothing is ever invented.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Link
-              href="/ask"
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-transform duration-200 ease-expo hover:-translate-y-0.5"
-            >
-              Ask a question <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-2 rounded-full border border-input bg-background px-5 py-2.5 text-sm font-medium transition-colors hover:bg-accent"
-            >
-              Open the map
-            </Link>
-            <a
-              href={DOCS_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 px-2 py-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Read the docs <ArrowUpRight className="h-3.5 w-3.5" />
-            </a>
-          </div>
+      {/* Hero — Ridge/Orbit mark inside contour rings, live readouts pinned */}
+      <section className="animate-fade-up mx-auto max-w-[900px] text-center">
+        <div className="inline-flex items-center rounded-full border border-border bg-card px-4 py-2 font-mono text-xs text-muted-foreground">
+          Sourced from Copernicus · ESA · JRC datasets
         </div>
 
-        {/* /ask terminal demo */}
-        <div className="animate-fade-up [animation-delay:120ms]">
+        <div className="relative mx-auto mt-8 h-[300px] w-full max-w-[560px] overflow-hidden sm:h-[380px]">
+          {[150, 250, 350, 440].map((size, i) => (
+            <div
+              key={size}
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border"
+              style={{
+                width: size,
+                height: size,
+                borderColor: `hsl(var(--foreground) / ${[0.1, 0.08, 0.06, 0.045][i]})`,
+              }}
+            />
+          ))}
+          <TerraMark
+            twoTone
+            className="logo-draw absolute left-1/2 top-1/2 h-[86px] w-[86px] -translate-x-1/2 -translate-y-[58%] text-foreground"
+          />
+          <LiveReadout
+            className="absolute left-0 top-[2%] hidden sm:block"
+            lines={[
+              ["slope", "2.4°"],
+              ["source", "COPERNICUS_DEM"],
+            ]}
+          />
+          <LiveReadout
+            className="absolute bottom-[4%] right-0 hidden sm:block"
+            lines={[
+              ["cover", "cropland"],
+              ["source", "ESA_WORLDCOVER"],
+            ]}
+          />
+        </div>
+
+        <h1 className="font-display text-[clamp(38px,6vw,68px)] font-bold leading-[1.06] tracking-[-0.02em]">
+          Ground truth for
+          <br />
+          <RotatingWord />
+        </h1>
+        <p className="mx-auto mt-6 max-w-xl text-[17px] leading-relaxed text-muted-foreground">
+          Terra gives AI agents and analysts sourced, citation-backed data for any Indian
+          coordinate — terrain, climate, land cover, hazard, infrastructure and more. Every value
+          traces to a dataset. Nothing is ever invented.
+        </p>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/ask"
+            className="btn-scan inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-transform duration-200 ease-expo hover:-translate-y-0.5"
+          >
+            Ask a question <ArrowRight className="h-4 w-4" />
+          </Link>
+          <a
+            href={DOCS_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 px-2 py-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Read the docs <ArrowUpRight className="h-3.5 w-3.5" />
+          </a>
+        </div>
+      </section>
+
+      {/* Live stats */}
+      <section>
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-4">
+          {stats.map((s) => (
+            <div key={s.label} className="bg-card px-5 py-6">
+              <p className="font-display text-3xl font-semibold tabular-nums">{s.value ?? "—"}</p>
+              <p className="mono-eyebrow mt-2">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Live /ask example */}
+      <section className="mx-auto max-w-[900px]">
+        <Reveal>
+          <div className="text-center">
+            <p className="mono-eyebrow">Live example</p>
+            <h2 className="mt-3 font-display text-[clamp(26px,4vw,38px)] font-semibold tracking-[-0.01em]">
+              Ask a question, get a cited answer.
+            </h2>
+          </div>
+        </Reveal>
+        <Reveal delay={100} className="mt-10 block">
           <TerminalWindow title="terra · POST /api/v1/ask">
             <div className="space-y-2.5">
               <TerminalLine prefix="$" tone="muted">
@@ -147,131 +234,7 @@ export default function HomePage() {
           <p className="mt-3 text-center text-[11px] text-faint">
             Illustrative response · every claim carries a citation
           </p>
-        </div>
-      </section>
-
-      {/* Live stats */}
-      <section>
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-4">
-          {stats.map((s) => (
-            <div key={s.label} className="bg-card px-5 py-6">
-              <p className="font-display text-3xl font-semibold tabular-nums">{s.value ?? "—"}</p>
-              <p className="mono-eyebrow mt-2">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* What Terra provides */}
-      <section>
-        <Reveal>
-          <SectionHeading
-            eyebrow="What Terra provides"
-            title="Nine domain layers, one honest contract."
-            description="Each layer is a set of sourced fields with its own provenance. Toggle them on the map, or let Ask pick the right ones for your question."
-          />
         </Reveal>
-        {layers.isLoading && <LoadingBlock rows={3} className="mt-10" />}
-        {layers.isError && (
-          <ErrorState
-            error={layers.error}
-            onRetry={() => layers.refetch()}
-            title="Couldn't load the layer catalog"
-            className="mt-10"
-          />
-        )}
-        {layers.data && (
-          <div className="mt-10 grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
-            {layers.data.layers.map((layer, i) => {
-              const meta = layerMeta(layer.id);
-              const Icon = meta.icon;
-              return (
-                <Reveal key={layer.id} delay={(i % 3) * 70} className="bg-card">
-                  <div className="group h-full p-6 transition-colors hover:bg-secondary">
-                    <span
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-md"
-                      style={{
-                        background: `hsl(${meta.accent} / 0.12)`,
-                        color: `hsl(${meta.accent})`,
-                      }}
-                    >
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <h3 className="mt-4 text-[17px] font-semibold">{layer.name}</h3>
-                    <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                      {layer.purpose}
-                    </p>
-                    <p className="mono-eyebrow mt-4">{layer.field_count} fields</p>
-                  </div>
-                </Reveal>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* Use cases */}
-      <section id="use-cases" className="scroll-mt-24">
-        <Reveal>
-          <SectionHeading
-            eyebrow="Use cases"
-            title="Ready-made presets for real questions."
-            description={
-              presets.data
-                ? `${presets.data.count} presets bundle the right fields for a job — siting, risk, and lookup queries you can run in one call.`
-                : "Presets bundle the right fields for a job — siting, risk, and lookup queries you can run in one call."
-            }
-          />
-        </Reveal>
-        {presets.isLoading && <LoadingBlock rows={3} className="mt-10" />}
-        {presets.isError && (
-          <ErrorState
-            error={presets.error}
-            onRetry={() => presets.refetch()}
-            title="Couldn't load presets"
-            className="mt-10"
-          />
-        )}
-        {presets.data && (
-          <div className="mt-10 grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
-            {presets.data.presets.slice(0, USE_CASE_LIMIT).map((preset, i) => {
-              const meta = layerMeta(preset.layers[0] ?? "");
-              const Icon = meta.icon;
-              return (
-                <Reveal key={preset.id} delay={(i % 3) * 70} className="bg-card">
-                  <Link
-                    href={`/fetch?preset=${preset.id}`}
-                    className="group flex h-full flex-col p-6 transition-colors hover:bg-secondary"
-                  >
-                    <span
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-md"
-                      style={{
-                        background: `hsl(${meta.accent} / 0.12)`,
-                        color: `hsl(${meta.accent})`,
-                      }}
-                    >
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <h3 className="mt-4 text-[17px] font-semibold">{preset.name}</h3>
-                    <p className="mt-1.5 flex-1 text-sm leading-relaxed text-muted-foreground">
-                      {preset.description}
-                    </p>
-                    <span className="mono-eyebrow mt-4 inline-flex items-center gap-1 text-brand">
-                      Try this preset
-                      <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-                    </span>
-                  </Link>
-                </Reveal>
-              );
-            })}
-          </div>
-        )}
-        {(presets.data?.count ?? 0) > USE_CASE_LIMIT && (
-          <p className="mt-4 text-center text-[13px] text-muted-foreground">
-            +{(presets.data?.count ?? 0) - USE_CASE_LIMIT} more presets available via{" "}
-            <span className="font-mono">GET /meta/presets</span>
-          </p>
-        )}
       </section>
 
       {/* For AI agents */}
@@ -334,15 +297,9 @@ export default function HomePage() {
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
             href="/ask"
-            className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-transform duration-200 ease-expo hover:-translate-y-0.5"
+            className="btn-scan inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-transform duration-200 ease-expo hover:-translate-y-0.5"
           >
             Ask a question <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 rounded-full border border-input bg-background px-5 py-2.5 text-sm font-medium transition-colors hover:bg-accent"
-          >
-            Explore the map
           </Link>
         </div>
       </section>

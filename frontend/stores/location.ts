@@ -1,6 +1,6 @@
 // Shared client state (SRS §9 Zustand, §12.3). Holds the coordinate the user is
-// working with so it persists as they move between the Ask, Fetch, and Dashboard
-// pages, plus a lightweight history of recent runs. This is UI state only — it
+// working with so it persists as they move between the Ask and Fetch pages,
+// plus a lightweight history of recent runs. This is UI state only — it
 // carries no business logic and no catalog knowledge (SRS §38.5).
 
 import { create } from "zustand";

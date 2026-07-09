@@ -12,17 +12,16 @@ import { cn } from "@/lib/utils";
 
 const DOCS_URL = process.env.NEXT_PUBLIC_API_DOCS_URL ?? "http://localhost:8000/docs";
 
-// Normal-user navigation is deliberately just Ask + Dashboard, plus marketing
-// anchors (Use Cases / FAQ, mireye-style — nav links that scroll to homepage
-// sections) and Documentation. Explore and System are developer tools: they are
-// appended ONLY when DEV_TOOLS is on, so for normal users they never enter the
-// rendered DOM (SRS §12 nav rule).
+// Normal-user navigation: Ask, the Layers and Use Cases catalog pages, the FAQ
+// anchor (scrolls to the homepage section) and Documentation. Explore and System
+// are developer tools: they are appended ONLY when DEV_TOOLS is on, so for normal
+// users they never enter the rendered DOM (SRS §12 nav rule).
 type NavItem = { href: string; label: string; kind?: "external" | "anchor" };
 
 const BASE_ITEMS: NavItem[] = [
   { href: "/ask", label: "Ask" },
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/#use-cases", label: "Use Cases", kind: "anchor" },
+  { href: "/layers", label: "Layers" },
+  { href: "/use-cases", label: "Use Cases" },
   { href: "/#faq", label: "FAQ", kind: "anchor" },
 ];
 
@@ -94,8 +93,15 @@ export function Nav() {
         <div className="flex items-center gap-3">
           <BackendStatus className="hidden lg:inline-flex" />
           <Link
+            href="/account"
+            aria-current={isActive(pathname, "/account") ? "page" : undefined}
+            className="hidden items-center gap-1.5 rounded-full border border-input px-4 py-2 text-sm font-medium transition-colors hover:bg-accent sm:inline-flex"
+          >
+            Account
+          </Link>
+          <Link
             href="/ask"
-            className="hidden items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-transform duration-200 ease-expo hover:-translate-y-0.5 sm:inline-flex"
+            className="btn-scan hidden items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-transform duration-200 ease-expo hover:-translate-y-0.5 sm:inline-flex"
           >
             Try <span className="font-mono">/ask</span>
           </Link>
@@ -161,9 +167,17 @@ export function Nav() {
               ),
             )}
             <Link
+              href="/account"
+              onClick={() => setOpen(false)}
+              aria-current={isActive(pathname, "/account") ? "page" : undefined}
+              className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-full border border-input px-4 py-2.5 text-sm font-medium hover:bg-accent"
+            >
+              Account
+            </Link>
+            <Link
               href="/ask"
               onClick={() => setOpen(false)}
-              className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground"
+              className="inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground"
             >
               Try <span className="font-mono">/ask</span>
             </Link>
