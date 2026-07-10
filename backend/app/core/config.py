@@ -8,11 +8,13 @@ read through :mod:`app.config.loader`.
 
 from __future__ import annotations
 
+import json
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 # Repository root: app/core/config.py -> core -> app -> backend -> <repo root>
 BASE_DIR = Path(__file__).resolve().parents[3]
@@ -53,7 +55,11 @@ class Settings(BaseSettings):
     # unaffected by CORS. A ``*`` wildcard is rejected in production (see
     # ``validate_runtime``); the dev default is the local frontend origin so the
     # HttpOnly-cookie session works cross-origin.
-    cors_origins: list[str] = ["http://localhost:3000"]
+    # ``NoDecode`` + the validator below let this be set as a JSON array
+    # (``["https://a.com"]``), a comma-separated list (``https://a.com,https://b.com``),
+    # or a single bare origin (``https://a.com``) — dashboard env fields rarely
+    # make strict JSON easy, so all three are accepted (SRS §29.3).
+    cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:3000"]
     # Send ``Access-Control-Allow-Credentials``. The browser session is an
     # HttpOnly cookie (see ``account_session_ttl_days``), so cross-origin
     # requests must carry credentials — on by default. Browsers reject ``*`` +
@@ -228,6 +234,25 @@ class Settings(BaseSettings):
     # proxy — Nginx overwrites ``X-Real-IP`` with the real peer (§33.1), so it
     # becomes authoritative and client-supplied values are ignored.
     trust_proxy_headers: bool = False
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _parse_cors_origins(cls, value: object) -> object:
+        """Accept a JSON array, a comma-separated list, or a single origin.
+
+        pydantic-settings would otherwise JSON-decode this env var and hard-fail
+        the whole app on a bare string like ``https://a.vercel.app`` — a common
+        way to set it in a hosting dashboard. Non-strings (the code default, or
+        an already-parsed list) pass straight through.
+        """
+        if not isinstance(value, str):
+            return value
+        text = value.strip()
+        if not text:
+            return []
+        if text.startswith("["):
+            return json.loads(text)  # explicit JSON array; surfaces its own error
+        return [item.strip() for item in text.split(",") if item.strip()]
 
     @property
     def database_url(self) -> str:

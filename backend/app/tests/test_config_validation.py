@@ -63,6 +63,22 @@ def test_dev_fixtures_allowed_outside_production() -> None:
     assert Settings(enable_dev_fixtures=True).validate_runtime() == []
 
 
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("https://foo.vercel.app", ["https://foo.vercel.app"]),  # bare origin (dashboard-friendly)
+        ('["https://foo.vercel.app"]', ["https://foo.vercel.app"]),  # JSON array
+        ("https://a.com,https://b.com", ["https://a.com", "https://b.com"]),  # comma list
+        (" https://a.com , https://b.com ", ["https://a.com", "https://b.com"]),  # whitespace
+        ("[]", []),  # explicit empty (same-origin prod)
+        ("", []),  # blank
+    ],
+)
+def test_cors_origins_accepts_json_csv_or_bare_string(raw: str, expected: list[str]) -> None:
+    """A bare or comma-separated origin must not crash Settings (managed-host env)."""
+    assert Settings(cors_origins=raw).cors_origins == expected
+
+
 def test_database_url_appends_sslmode_only_when_set() -> None:
     """TERRA_POSTGRES_SSLMODE reaches asyncpg via the DSN (managed Postgres TLS)."""
     assert "?" not in Settings().database_url
