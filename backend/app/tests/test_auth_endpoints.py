@@ -1,8 +1,8 @@
 """Auth-enforcement + token-management tests (SRS §13.20, §13.19).
 
-Verifies the gateway contract when ``auth_enabled=true``: metadata stays public;
-``/fetch`` and ``/ask`` require a valid, correctly-scoped bearer token; per-token
-rate limits return 429; and token management is admin-gated.
+Verifies the gateway contract when ``auth_enabled=true``: metadata and ``/ask``
+stay public; ``/fetch`` requires a valid, correctly-scoped bearer token;
+per-token rate limits return 429; and token management is admin-gated.
 """
 
 from __future__ import annotations
@@ -45,6 +45,14 @@ def test_fetch_succeeds_with_valid_token() -> None:
         resp = client.post("/api/v1/fetch", json=_FETCH_BODY, headers=_bearer(token))
         assert resp.status_code == 200
         assert resp.json()["fields"]["elevation"]["value"] is not None
+
+
+def test_ask_is_public_without_token() -> None:
+    # /ask is the free demo surface: it answers even with auth_enabled and no token.
+    with auth_client() as (client, _, _):
+        resp = client.post("/api/v1/ask", json={**_POINT, "question": "What is the elevation?"})
+        assert resp.status_code == 200
+        assert resp.json()["answer"].strip()
 
 
 def test_ask_succeeds_with_valid_token() -> None:

@@ -140,9 +140,9 @@ class Settings(BaseSettings):
     # --- Authentication (SRS §13.20, §13.19) ----------------------------
     # V1.1 separates public discovery from authenticated data access. Auth is a
     # gateway concern applied *without changing endpoint contracts* (§13.20), so
-    # it is a cross-cutting toggle: metadata APIs stay public; POST /fetch and
-    # POST /ask require a bearer token only when ``auth_enabled`` is true. The
-    # default is off so the deterministic gate and the browser UX keep working
+    # it is a cross-cutting toggle: metadata APIs and POST /ask stay public; only
+    # POST /fetch requires a bearer token, and only when ``auth_enabled`` is true.
+    # The default is off so the deterministic gate and the browser UX keep working
     # unchanged; production deployments enable it.
     auth_enabled: bool = False
     # Bootstrap credential guarding token-management endpoints (dashboard-issued

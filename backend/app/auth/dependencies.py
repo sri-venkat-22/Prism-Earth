@@ -2,7 +2,8 @@
 
 Provides the injectable stores (overridable in tests, mirroring the
 ``get_fetch_orchestrator`` pattern), the :func:`require_auth` guard applied to
-``/fetch`` and ``/ask``, and :func:`require_admin` guarding token management.
+``/fetch``, and :func:`require_admin` guarding token management. ``/ask`` is
+public (the free demo surface) and carries no ``require_auth`` guard.
 
 When ``auth_enabled`` is false the guard short-circuits to an anonymous
 principal, so endpoint contracts are unchanged (SRS §13.20) and the browser UX /
