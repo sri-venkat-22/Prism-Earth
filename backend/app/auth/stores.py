@@ -70,6 +70,7 @@ class InMemoryEphemeralStore:
 
     async def incr(self, key: str, ttl_seconds: int) -> int:
         now = time.time()
+        self._sweep(now)  # keep the process-local store bounded over long runs
         count, expiry = self._counters.get(key, (0, 0.0))
         if expiry <= now:
             count, expiry = 0, now + ttl_seconds

@@ -32,9 +32,11 @@ gateway rate limiter keys correctly (SRS §13.19).
 | --- | --- | --- |
 | `terra-backend` | `python:3.12-slim` | uv, non-root, healthcheck, 4 workers |
 | `terra-frontend` | `node:22-alpine` | Next.js standalone, non-root |
-| `db` | `postgis/postgis:16-3.4` | persistent volume |
-| `redis` | `redis:7-alpine` | AOF persistence |
 | `nginx` | `nginx:1.27-alpine` | reverse proxy |
+
+Postgres and Redis are **managed cloud services** in the prod topology (e.g.
+Neon and Upstash) — the dev compose still bundles `postgis/postgis:16-3.4` and
+`redis:7-alpine` containers locally.
 
 ## Running locally (dev)
 
@@ -45,7 +47,13 @@ docker compose up --build          # db, redis, backend, frontend
 ## Running in production
 
 ```bash
-export POSTGRES_PASSWORD=...                 # required
+# Managed data tier (Neon Postgres + Upstash Redis) — all required:
+export TERRA_POSTGRES_HOST=ep-xxxx.aws.neon.tech
+export TERRA_POSTGRES_USER=terra
+export TERRA_POSTGRES_PASSWORD=...
+export TERRA_POSTGRES_DB=terra
+export TERRA_REDIS_URL=rediss://default:<password>@<host>.upstash.io:6379
+export TERRA_AUTH_ISSUER_URL=https://your-domain.example   # public origin
 export TERRA_AUTH_ADMIN_TOKEN=$(openssl rand -hex 32)   # required: bootstraps token issuance
 # Drop TLS certs in place first (see TLS below):
 #   deployment/nginx/certs/{fullchain.pem,privkey.pem}
@@ -86,8 +94,12 @@ files and reload (`docker compose -f docker-compose.prod.yml exec nginx nginx -s
 
 All configuration is environment-driven (`TERRA_*`, see `.env.example`). Secrets
 (DB password, admin token, GEE key, LLM key) are supplied via the environment and
-never committed. `POSTGRES_PASSWORD` and `TERRA_AUTH_ADMIN_TOKEN` are required in
-production — the prod compose fails fast without them.
+never committed. The managed-service coordinates (`TERRA_POSTGRES_*`,
+`TERRA_REDIS_URL`), `TERRA_AUTH_ISSUER_URL`, and `TERRA_AUTH_ADMIN_TOKEN` are
+required in production — the prod compose fails fast without them. Postgres TLS
+defaults to `require` (`TERRA_POSTGRES_SSLMODE`). To enable `/ask`, set
+`TERRA_LLM_MODEL` + `TERRA_LLM_API_KEY`; for "Sign in with Google", set
+`TERRA_GOOGLE_OAUTH_CLIENT_ID` / `TERRA_GOOGLE_OAUTH_CLIENT_SECRET`.
 
 The **GEE service-account key** is mounted read-only as a Docker secret
 (`./secrets/terra-gee.json` → `/run/secrets/gee_key`), never baked into an
@@ -132,13 +144,13 @@ environment-driven (defaults in parentheses):
 
 ## Single points of failure & HA expectations
 
-The bundled `docker-compose.prod.yml` is a **single-node** topology; every
-stateful service in it is a SPOF. For production-grade availability:
+The bundled `docker-compose.prod.yml` runs a **single-node app tier** over a
+managed data tier. Remaining failure modes and expectations:
 
 | Component | Failure mode today | HA expectation |
 | --- | --- | --- |
-| PostGIS (`db`) | Single container; loss stops state detection, all PostGIS connectors, and `/ready` fails closed | Managed PostgreSQL with PostGIS (RDS/Cloud SQL/Azure) with automated backups + a streaming replica; point `TERRA_POSTGRES_*` at it |
-| Redis | Single container; loss degrades the fetch cache to misses (fail-open) and, with `TERRA_AUTH_USE_REDIS=true`, drops auth/rate-limit state; `/ready` fails closed | Managed Redis (ElastiCache/Memorystore) with AOF or RDB persistence and a replica; cache contents are reconstructible, auth state should persist |
+| PostGIS (managed, e.g. Neon) | Provider outage stops state detection, all PostGIS connectors, and `/ready` fails closed | Provider handles backups/replication; pick a plan with a replica for stricter SLOs |
+| Redis (managed, e.g. Upstash) | Provider outage degrades the fetch cache to misses (fail-open) and, with `TERRA_AUTH_USE_REDIS=true`, drops auth/rate-limit state; `/ready` fails closed | Provider handles persistence/replication; cache contents are reconstructible, auth state should persist |
 | Backend API | Stateless | ≥2 replicas behind the load balancer; readiness (`/api/v1/ready`) already gates traffic correctly |
 | Nginx edge | Single container | Run the platform load balancer (ALB/Cloud LB) in front, or ≥2 edge nodes |
 | Google Earth Engine | External dependency, no self-hosted fallback | Buffered by the fetch cache + deadline; sustained outage degrades GEE-backed fields to retryable nulls, the platform stays up |

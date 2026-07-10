@@ -127,9 +127,7 @@ def test_cannot_revoke_someone_elses_token() -> None:
     with account_client() as client:
         a = _register(client)
         b = _register(client, email="other@example.com")
-        made = client.post(
-            "/api/v1/account/tokens", json={"name": "a"}, headers=_bearer(a)
-        ).json()
+        made = client.post("/api/v1/account/tokens", json={"name": "a"}, headers=_bearer(a)).json()
         # B tries to revoke A's token → treated as not found (no cross-user access).
         assert (
             client.delete(f"/api/v1/account/tokens/{made['id']}", headers=_bearer(b)).status_code

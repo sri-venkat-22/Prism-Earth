@@ -46,9 +46,7 @@ export function AccountAuth({
         : await loginAccount({ email, password });
       onAuthed(user); // session is set as an HttpOnly cookie by the backend
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Something went wrong. Please try again.",
-      );
+      setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
     } finally {
       setBusy(false);
     }

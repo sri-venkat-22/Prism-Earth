@@ -1,0 +1,26 @@
+# Build context for backend/Dockerfile (context: repo root, see docker-compose.yml
+# and docker-compose.prod.yml). Only backend/ + configs/ are actually COPYed in;
+# everything else here is excluded so the build stays fast and secrets never
+# reach the daemon.
+.git/
+frontend/
+docs/
+site/
+datasets/
+scripts/
+secrets/
+.idea/
+.github/
+*.md
+*.docx
+
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.ruff_cache/
+backend/.env
+backend/tests/
+backend/**/tests/

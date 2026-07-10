@@ -63,6 +63,12 @@ def test_dev_fixtures_allowed_outside_production() -> None:
     assert Settings(enable_dev_fixtures=True).validate_runtime() == []
 
 
+def test_database_url_appends_sslmode_only_when_set() -> None:
+    """TERRA_POSTGRES_SSLMODE reaches asyncpg via the DSN (managed Postgres TLS)."""
+    assert "?" not in Settings().database_url
+    assert Settings(postgres_sslmode="require").database_url.endswith("?ssl=require")
+
+
 def test_wildcard_with_credentials_invalid_in_any_env() -> None:
     # Dev environment, but the pairing is rejected everywhere (browsers reject it).
     problems = Settings(cors_origins=["*"], cors_allow_credentials=True).validate_runtime()

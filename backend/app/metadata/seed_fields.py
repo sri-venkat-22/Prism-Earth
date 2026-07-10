@@ -125,9 +125,7 @@ _OSM = "https://www.openstreetmap.org/"
 # bulk/API source (not in the public Earth Engine catalog; Bhuvan has no open
 # download path), so the catalog names the DEM the Terrain connector actually
 # samples — Copernicus DEM GLO-30 (Phase 10-B; see app/gee/datasets.py).
-_COPERNICUS_DEM = (
-    "https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_DEM_GLO30"
-)
+_COPERNICUS_DEM = "https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_DEM_GLO30"
 _TERRAIN = (
     _field(
         "elevation",
@@ -284,9 +282,7 @@ _CLIMATE = (
 # ISRO Bhuvan LULC product the SRS originally named — Bhuvan LULC has no open
 # bulk/API access (Phase 10-B/10-C source reconciliation).
 _SENTINEL = "https://sentinels.copernicus.eu/"
-_WORLDCOVER = (
-    "https://developers.google.com/earth-engine/datasets/catalog/ESA_WorldCover_v200"
-)
+_WORLDCOVER = "https://developers.google.com/earth-engine/datasets/catalog/ESA_WorldCover_v200"
 _MODIS = "https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD13Q1"
 _LAND_COVER = (
     _field(

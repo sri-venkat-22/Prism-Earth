@@ -9,56 +9,35 @@
 # Add the monitoring stack with the overlay:
 #   docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml up -d
 #
-# NOTE: this is a SINGLE-NODE topology — the db, redis, and nginx services are
-# each a single point of failure. For production-grade availability point
-# TERRA_POSTGRES_*/TERRA_REDIS_URL at managed, replicated services and run ≥2
-# backend replicas; see "Single points of failure & HA expectations" in
+# NOTE: Postgres and Redis are managed cloud services (Neon / Upstash) via
+# TERRA_POSTGRES_* / TERRA_REDIS_URL. What runs here is a SINGLE-NODE app tier:
+# the nginx edge and a single backend are the remaining single points of
+# failure. For higher availability run >=2 backend replicas behind a load
+# balancer; see "Single points of failure & HA expectations" in
 # docs/deployment.md.
 services:
-  db:
-    image: postgis/postgis:16-3.4
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-terra}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
-      POSTGRES_DB: ${POSTGRES_DB:-terra}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-terra} -d ${POSTGRES_DB:-terra}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
-    volumes:
-      - redisdata:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # Postgres (Neon) and Redis (Upstash) are managed cloud services — set
+  # TERRA_POSTGRES_* and TERRA_REDIS_URL in .env to point at them. No bundled
+  # db/redis containers in this topology.
 
   # One-shot: apply DB migrations before the API starts serving.
   migrate:
     build:
-      context: ./backend
+      context: .
+      dockerfile: backend/Dockerfile
     command: ["alembic", "upgrade", "head"]
     environment: &backend_env
       TERRA_APP_ENV: production
       TERRA_DEBUG: "false"
       TERRA_LOG_JSON: "true"
-      TERRA_POSTGRES_HOST: db
-      TERRA_POSTGRES_PORT: "5432"
-      TERRA_POSTGRES_USER: ${POSTGRES_USER:-terra}
-      TERRA_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
-      TERRA_POSTGRES_DB: ${POSTGRES_DB:-terra}
-      TERRA_REDIS_URL: redis://redis:6379/0
+      TERRA_POSTGRES_HOST: ${TERRA_POSTGRES_HOST:?set TERRA_POSTGRES_HOST in .env (Neon host)}
+      TERRA_POSTGRES_PORT: ${TERRA_POSTGRES_PORT:-5432}
+      TERRA_POSTGRES_USER: ${TERRA_POSTGRES_USER:?set TERRA_POSTGRES_USER in .env}
+      TERRA_POSTGRES_PASSWORD: ${TERRA_POSTGRES_PASSWORD:?set TERRA_POSTGRES_PASSWORD in .env}
+      TERRA_POSTGRES_DB: ${TERRA_POSTGRES_DB:?set TERRA_POSTGRES_DB in .env}
+      # Managed Postgres requires TLS; "require" is the safe default here.
+      TERRA_POSTGRES_SSLMODE: ${TERRA_POSTGRES_SSLMODE:-require}
+      TERRA_REDIS_URL: ${TERRA_REDIS_URL:?set TERRA_REDIS_URL in .env (Upstash rediss:// URL)}
       TERRA_CONFIG_DIR: /configs
       TERRA_AUTH_USE_REDIS: "true"
       TERRA_METRICS_ENABLED: "true"
@@ -76,18 +55,31 @@ services:
       # The app sits behind Nginx, which sets a trustworthy X-Real-IP, so honor
       # the forwarded client IP for rate-limit keying (spoof-safe, SRS §13.19).
       TERRA_TRUST_PROXY_HEADERS: "true"
+      # Public origin of this deployment (https://your-domain). Used as the
+      # OAuth issuer / resource identifier in the /.well-known discovery
+      # documents and to build the Google login callback URL — localhost
+      # defaults would break MCP OAuth and login in production.
+      TERRA_AUTH_ISSUER_URL: ${TERRA_AUTH_ISSUER_URL:?set TERRA_AUTH_ISSUER_URL in .env to the public https origin}
+      # Where the browser lands after Google login. Same-origin topology, so it
+      # defaults to the public origin above.
+      TERRA_FRONTEND_BASE_URL: ${TERRA_FRONTEND_BASE_URL:-${TERRA_AUTH_ISSUER_URL}}
+      # AI pipeline (/ask): LiteLLM route + provider key. Without a key /ask
+      # returns an honest 503; set both to enable natural-language answers.
+      TERRA_LLM_MODEL: ${TERRA_LLM_MODEL:-anthropic/claude-opus-4-8}
+      TERRA_LLM_API_KEY: ${TERRA_LLM_API_KEY:-}
+      # "Sign in with Google" (optional — button hidden when unset).
+      TERRA_GOOGLE_OAUTH_CLIENT_ID: ${TERRA_GOOGLE_OAUTH_CLIENT_ID:-}
+      TERRA_GOOGLE_OAUTH_CLIENT_SECRET: ${TERRA_GOOGLE_OAUTH_CLIENT_SECRET:-}
       # Opt-in tracing — supply via .env in production (SRS §27.3).
       TERRA_OTEL_ENABLED: ${TERRA_OTEL_ENABLED:-false}
       TERRA_OTEL_EXPORTER_ENDPOINT: ${TERRA_OTEL_EXPORTER_ENDPOINT:-}
     volumes:
       - ./configs:/configs:ro
-    depends_on:
-      db:
-        condition: service_healthy
 
   backend:
     build:
-      context: ./backend
+      context: .
+      dockerfile: backend/Dockerfile
     restart: unless-stopped
     environment:
       <<: *backend_env
@@ -103,10 +95,6 @@ services:
     volumes:
       - ./configs:/configs:ro
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
       migrate:
         condition: service_completed_successfully
     healthcheck:
@@ -148,10 +136,6 @@ services:
     depends_on:
       - backend
       - frontend
-
-volumes:
-  pgdata:
-  redisdata:
 
 # GEE service-account key mounted read-only into the backend (SRS §19.3, §29.2).
 # The file stays in the gitignored ./secrets/ directory and is never committed

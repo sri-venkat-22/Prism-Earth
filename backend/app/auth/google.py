@@ -70,6 +70,8 @@ async def exchange_code(
         info = info_resp.json()
 
     sub, email = info.get("sub"), info.get("email")
-    if not sub or not email or not info.get("email_verified", True):
+    # email_verified must be explicitly true: the callback links accounts by
+    # email, so an unverified (or absent) claim would allow account takeover.
+    if not sub or not email or info.get("email_verified") is not True:
         raise GoogleOAuthError("Google profile is missing a verified email.")
     return GoogleProfile(sub=str(sub), email=str(email).lower())

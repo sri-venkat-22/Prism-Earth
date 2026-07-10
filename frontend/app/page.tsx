@@ -106,7 +106,7 @@ export default function HomePage() {
   return (
     <div className="space-y-24 sm:space-y-32">
       {/* Hero — Ridge/Orbit mark inside contour rings, live readouts pinned */}
-      <section className="animate-fade-up mx-auto max-w-[900px] text-center">
+      <section className="mx-auto max-w-[900px] animate-fade-up text-center">
         <div className="inline-flex items-center rounded-full border border-border bg-card px-4 py-2 font-mono text-xs text-muted-foreground">
           Sourced from Copernicus · ESA · JRC datasets
         </div>
@@ -149,9 +149,9 @@ export default function HomePage() {
           <RotatingWord />
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-[17px] leading-relaxed text-muted-foreground">
-          Terra gives AI agents and analysts sourced, citation-backed data for any Indian
-          coordinate — terrain, climate, land cover, hazard, infrastructure and more. Every value
-          traces to a dataset. Nothing is ever invented.
+          Terra gives AI agents and analysts sourced, citation-backed data for any Indian coordinate
+          — terrain, climate, land cover, hazard, infrastructure and more. Every value traces to a
+          dataset. Nothing is ever invented.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link

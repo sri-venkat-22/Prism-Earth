@@ -118,9 +118,7 @@ export function AccountDashboard({
 
       <Separator className="my-8" />
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <span className="mono-eyebrow normal-case tracking-normal">
-          Signed in as {user.email}
-        </span>
+        <span className="mono-eyebrow normal-case tracking-normal">Signed in as {user.email}</span>
         <Button variant="ghost" onClick={signOut}>
           <LogOut className="h-4 w-4" /> Sign out
         </Button>
@@ -397,7 +395,11 @@ function ProfilePanel({
               Revokes all tokens and removes your data. This cannot be undone.
             </p>
           </div>
-          <Button variant="outline" onClick={remove} className="border-danger/50 text-danger hover:bg-danger/10">
+          <Button
+            variant="outline"
+            onClick={remove}
+            className="border-danger/50 text-danger hover:bg-danger/10"
+          >
             Delete account
           </Button>
         </div>

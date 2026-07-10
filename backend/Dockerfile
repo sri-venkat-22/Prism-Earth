@@ -1,4 +1,10 @@
 # Terra backend image (SRS §32). Python 3.12 + uv.
+#
+# Build context is the REPO ROOT (not backend/) so this can also COPY the
+# top-level configs/ directory into the image — required on PaaS targets like
+# Render that run a plain container with no Compose volume mounts. Locally,
+# docker-compose's `./configs:/configs:ro` mount simply overlays this baked-in
+# copy, so live-edited configs still work unchanged in dev.
 FROM python:3.12-slim AS base
 
 ENV PYTHONUNBUFFERED=1 \
@@ -9,20 +15,24 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# Install uv (dependency manager).
-RUN pip install --no-cache-dir uv
+# Install uv (dependency manager). Pinned: an unpinned install picks up
+# whatever uv released today, and a newer uv can enforce stricter lockfile
+# checks than the one that generated uv.lock, breaking `--frozen` builds
+# without any change on our side.
+RUN pip install --no-cache-dir uv==0.11.25
 
 # ---- Dependency layer (cached unless manifests change) ----
 # The base image already provides Python 3.12. `--frozen` installs exactly what
 # the committed uv.lock pins (fully reproducible); `--no-install-project` skips
 # the app itself (it is a runnable, not a package — see pyproject [tool.uv]).
-COPY pyproject.toml uv.lock README.md ./
+COPY backend/pyproject.toml backend/uv.lock backend/README.md ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 # ---- Application layer ----
-COPY app ./app
-COPY alembic.ini ./
-COPY migrations ./migrations
+COPY backend/app ./app
+COPY backend/alembic.ini ./
+COPY backend/migrations ./migrations
+COPY configs /configs
 
 ENV PATH="/app/.venv/bin:$PATH" \
     TERRA_CONFIG_DIR=/configs

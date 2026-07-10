@@ -67,6 +67,10 @@ class Settings(BaseSettings):
     postgres_user: str = "terra"
     postgres_password: str = "terra"  # noqa: S105 - dev default; real secret from env (§29.2)
     postgres_db: str = "terra"
+    # TLS for managed Postgres (Neon et al.): libpq-style mode passed to asyncpg
+    # ("require", "verify-full", …). Unset keeps the driver default ("prefer"),
+    # which suits the local/dev containers; the prod topology sets "require".
+    postgres_sslmode: str | None = None
 
     # --- Redis (SRS §23) -------------------------------------------------
     redis_url: str = "redis://redis:6379/0"
@@ -228,10 +232,13 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> str:
         """Async SQLAlchemy DSN (asyncpg driver)."""
-        return (
+        dsn = (
             f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}"
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
         )
+        if self.postgres_sslmode:
+            dsn += f"?ssl={self.postgres_sslmode}"
+        return dsn
 
     @property
     def is_production(self) -> bool:

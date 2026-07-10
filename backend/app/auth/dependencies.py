@@ -112,14 +112,20 @@ def _request_token(request: Request) -> str | None:
 
 
 def set_session_cookie(response: Response, token: str, settings: Settings) -> None:
-    """Attach the session token as an HttpOnly cookie (login/register/Google)."""
+    """Attach the session token as an HttpOnly cookie (login/register/Google).
+
+    Production topologies here are cross-site by default (Vercel frontend +
+    Render backend on different domains), so the cookie needs SameSite=None to
+    ride along on those requests; that requires Secure, which production always
+    sets. Dev stays Lax (both run on localhost; no HTTPS to satisfy None).
+    """
     response.set_cookie(
         SESSION_COOKIE,
         token,
         max_age=settings.account_session_ttl_days * 86400,
         httponly=True,  # not readable by JS → XSS cannot steal the session
         secure=settings.is_production,  # HTTPS-only in prod; plain http in dev
-        samesite="lax",  # not sent on cross-site POST → CSRF-resistant
+        samesite="none" if settings.is_production else "lax",
         path="/",
     )
 

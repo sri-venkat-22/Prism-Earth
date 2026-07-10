@@ -26,6 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import _client_key  # spoof-safe per-IP key (SRS §13.19)
 from app.auth import google
+from app.auth.dependencies import _request_token as _session_token  # header-or-cookie
 from app.auth.dependencies import (
     clear_session_cookie,
     get_auth_service,
@@ -33,7 +34,6 @@ from app.auth.dependencies import (
     get_token_store,
     set_session_cookie,
 )
-from app.auth.dependencies import _request_token as _session_token  # header-or-cookie
 from app.auth.oauth import DEFAULT_SCOPES, SUPPORTED_SCOPES
 from app.auth.ratelimit import enforce_rate_limit
 from app.auth.schemas import TokenCreatedResponse, TokenInfo, TokenListResponse
