@@ -33,6 +33,8 @@ COPY backend/app ./app
 COPY backend/alembic.ini ./
 COPY backend/migrations ./migrations
 COPY configs /configs
+COPY backend/docker-entrypoint.sh ./
+RUN chmod +x ./docker-entrypoint.sh
 
 ENV PATH="/app/.venv/bin:$PATH" \
     TERRA_CONFIG_DIR=/configs
@@ -47,6 +49,11 @@ EXPOSE 8000
 # endpoint, which returns 200 while the process is serving.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/v1/health').status==200 else 1)"
+
+# Applies pending migrations, then execs into CMD (see docker-entrypoint.sh).
+# Every deploy target (dev compose, self-hosted VM, Render) gets migrations
+# for free with no separate job/dashboard field to configure or typo.
+ENTRYPOINT ["./docker-entrypoint.sh"]
 
 # Production default: multiple Uvicorn workers behind Nginx (SRS §33). Override
 # the worker count via the compose command for horizontal tuning.

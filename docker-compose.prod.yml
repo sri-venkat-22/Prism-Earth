@@ -20,13 +20,12 @@ services:
   # TERRA_POSTGRES_* and TERRA_REDIS_URL in .env to point at them. No bundled
   # db/redis containers in this topology.
 
-  # One-shot: apply DB migrations before the API starts serving.
-  migrate:
+  backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    command: ["alembic", "upgrade", "head"]
-    environment: &backend_env
+    restart: unless-stopped
+    environment:
       TERRA_APP_ENV: production
       TERRA_DEBUG: "false"
       TERRA_LOG_JSON: "true"
@@ -73,20 +72,10 @@ services:
       # Opt-in tracing — supply via .env in production (SRS §27.3).
       TERRA_OTEL_ENABLED: ${TERRA_OTEL_ENABLED:-false}
       TERRA_OTEL_EXPORTER_ENDPOINT: ${TERRA_OTEL_EXPORTER_ENDPOINT:-}
-    volumes:
-      - ./configs:/configs:ro
-
-  backend:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-    restart: unless-stopped
-    environment:
-      <<: *backend_env
       # GEE credentials are mounted as a Docker secret at /run/secrets/gee_key —
-      # never baked into the image or committed (SRS §19.3, §29.2). Only the
-      # backend needs them; the migrate job does not. Rotate the key before
-      # exposure and replace ./secrets/terra-gee.json from your key store.
+      # never baked into the image or committed (SRS §19.3, §29.2). Rotate the
+      # key before exposure and replace ./secrets/terra-gee.json from your key
+      # store.
       TERRA_EARTH_ENGINE_SERVICE_ACCOUNT: ${GEE_SERVICE_ACCOUNT:-}
       TERRA_EARTH_ENGINE_PROJECT: ${GEE_PROJECT:-}
       TERRA_EARTH_ENGINE_KEY_FILE: /run/secrets/gee_key
@@ -94,9 +83,6 @@ services:
       - gee_key
     volumes:
       - ./configs:/configs:ro
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
     healthcheck:
       test:
         - "CMD-SHELL"

@@ -63,10 +63,11 @@ docker compose -f docker-compose.prod.yml up -d --build
 The prod topology is **secure by default**: auth is on (`TERRA_AUTH_ENABLED=true`),
 CORS is locked to same-origin (`TERRA_CORS_ORIGINS=[]`), proxy-IP trust is on for
 spoof-safe rate limiting, and the app **refuses to start** if production is
-misconfigured (auth off, no admin token, or wildcard CORS). The compose applies
-migrations via a one-shot `migrate` service before the API starts, uses restart
-policies and healthchecks, backs rate-limit/auth state with Redis, and runs the
-backend with JSON logging.
+misconfigured (auth off, no admin token, or wildcard CORS). The backend image's
+entrypoint applies pending migrations on every boot before handing off to
+uvicorn (`backend/docker-entrypoint.sh` — idempotent, safe for the single
+instance this topology runs), uses restart policies and healthchecks, backs
+rate-limit/auth state with Redis, and runs the backend with JSON logging.
 
 ### With the monitoring stack
 
