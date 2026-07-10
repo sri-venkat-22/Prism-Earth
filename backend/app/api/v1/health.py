@@ -46,7 +46,10 @@ def _earth_engine_status(settings: Settings) -> ComponentStatus:
         return ComponentStatus(status="ok", detail="Service account configured")
     return ComponentStatus(
         status="not_configured",
-        detail="Set TERRA_EARTH_ENGINE_SERVICE_ACCOUNT and TERRA_EARTH_ENGINE_KEY_FILE (SRS §19.3)",
+        detail=(
+            "Set TERRA_EARTH_ENGINE_SERVICE_ACCOUNT and either TERRA_EARTH_ENGINE_KEY_FILE "
+            "or TERRA_EARTH_ENGINE_KEY_JSON (SRS §19.3)"
+        ),
     )
 
 

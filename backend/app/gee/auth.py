@@ -48,16 +48,19 @@ def initialize_earth_engine(
         raise AuthenticationError(
             "Earth Engine is not configured.",
             details=(
-                "Set TERRA_EARTH_ENGINE_SERVICE_ACCOUNT and "
-                "TERRA_EARTH_ENGINE_KEY_FILE (SRS §19.3)."
+                "Set TERRA_EARTH_ENGINE_SERVICE_ACCOUNT and either "
+                "TERRA_EARTH_ENGINE_KEY_FILE or TERRA_EARTH_ENGINE_KEY_JSON (SRS §19.3)."
             ),
         )
 
     ee = ee_module or _import_ee()
     try:
+        # A file path takes precedence when both are set; key_data (raw JSON)
+        # is for PaaS free tiers with no persistent disk to put a key file on.
         credentials = ee.ServiceAccountCredentials(
             settings.earth_engine_service_account,
-            settings.earth_engine_key_file,
+            key_file=settings.earth_engine_key_file,
+            key_data=settings.earth_engine_key_json if not settings.earth_engine_key_file else None,
         )
         init_kwargs: dict[str, Any] = {}
         if settings.earth_engine_project:

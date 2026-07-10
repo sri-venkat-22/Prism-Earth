@@ -117,8 +117,13 @@ class Settings(BaseSettings):
     # --- Google Earth Engine (SRS §19.3) --------------------------------
     # Service-account auth (§19.3). Credentials never reach the frontend or API
     # consumers. When unset, GEE features are disabled rather than failing.
+    # ``earth_engine_key_file`` is a path to the JSON key (works with a real
+    # disk, e.g. local dev). ``earth_engine_key_json`` is the key's raw JSON
+    # content instead, for PaaS free tiers with no persistent disk / secret
+    # files (e.g. Render) — set one or the other, not both.
     earth_engine_service_account: str | None = None
     earth_engine_key_file: str | None = None
+    earth_engine_key_json: str | None = None
     earth_engine_project: str | None = None
 
     # --- AI pipeline / LLM (SRS §9, §14) --------------------------------
@@ -279,8 +284,11 @@ class Settings(BaseSettings):
 
     @property
     def earth_engine_configured(self) -> bool:
-        """True when a service account and key file are both set (SRS §19.3)."""
-        return bool(self.earth_engine_service_account and self.earth_engine_key_file)
+        """True when a service account and a key (file path or raw JSON) are set (SRS §19.3)."""
+        return bool(
+            self.earth_engine_service_account
+            and (self.earth_engine_key_file or self.earth_engine_key_json)
+        )
 
     def validate_runtime(self) -> list[str]:
         """Return fatal misconfigurations for the current environment (§29, §13.20).

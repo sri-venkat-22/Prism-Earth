@@ -75,8 +75,10 @@ class FakeEE:
     def ImageCollection(self, asset_id: str) -> _FakeImage:  # noqa: N802
         return _FakeImage(self._value)
 
-    def ServiceAccountCredentials(self, account: str, key_file: str):  # noqa: N802
-        self.credentials = (account, key_file)
+    def ServiceAccountCredentials(  # noqa: N802
+        self, account: str, key_file: str | None = None, key_data: str | None = None
+    ):
+        self.credentials = (account, key_file, key_data)
         return self.credentials
 
     def Initialize(self, credentials: object, **kwargs: object) -> None:  # noqa: N802
@@ -130,6 +132,7 @@ def test_initialize_uses_service_account_and_is_idempotent() -> None:
     assert fake.credentials == (
         "terra@example.iam.gserviceaccount.com",
         "/tmp/key.json",
+        None,
     )
     assert fake.init_kwargs == {"project": "terra"}
 
@@ -137,6 +140,24 @@ def test_initialize_uses_service_account_and_is_idempotent() -> None:
     second = FakeEE()
     initialize_earth_engine(settings, ee_module=second)
     assert second.initialized is False
+
+
+def test_initialize_uses_raw_key_json_when_no_key_file() -> None:
+    # PaaS free tiers with no persistent disk (e.g. Render) set the raw JSON
+    # key content instead of a file path.
+    settings = Settings(
+        earth_engine_service_account="terra@example.iam.gserviceaccount.com",
+        earth_engine_key_file=None,
+        earth_engine_key_json='{"type": "service_account"}',
+    )
+    fake = FakeEE()
+    initialize_earth_engine(settings, ee_module=fake)
+    assert fake.initialized is True
+    assert fake.credentials == (
+        "terra@example.iam.gserviceaccount.com",
+        None,
+        '{"type": "service_account"}',
+    )
 
 
 # --------------------------------------------------------------------------- #
