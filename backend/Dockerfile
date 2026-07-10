@@ -55,6 +55,9 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
 # for free with no separate job/dashboard field to configure or typo.
 ENTRYPOINT ["./docker-entrypoint.sh"]
 
-# Production default: multiple Uvicorn workers behind Nginx (SRS §33). Override
-# the worker count via the compose command for horizontal tuning.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# Worker count is driven by WEB_CONCURRENCY (uvicorn reads it natively),
+# defaulting to 1 when unset. A hardcoded 4-worker fan-out OOM-kills itself on
+# a small/constrained host (a PaaS free tier is ~512 MB) — each worker loads
+# the full app. Self-hosted prod sets WEB_CONCURRENCY in compose to scale up
+# (SRS §33); managed hosts like Render set it automatically from the CPU count.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

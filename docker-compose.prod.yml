@@ -38,6 +38,9 @@ services:
       TERRA_POSTGRES_SSLMODE: ${TERRA_POSTGRES_SSLMODE:-require}
       TERRA_REDIS_URL: ${TERRA_REDIS_URL:?set TERRA_REDIS_URL in .env (Upstash rediss:// URL)}
       TERRA_CONFIG_DIR: /configs
+      # Uvicorn worker processes (SRS §33). Tune to the host's CPU/RAM; each
+      # worker loads the full app, so keep it modest on small instances.
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
       TERRA_AUTH_USE_REDIS: "true"
       TERRA_METRICS_ENABLED: "true"
       TERRA_RATE_LIMIT_ENABLED: "true"
