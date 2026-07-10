@@ -26,6 +26,7 @@ import { ExecutionVisualizer } from "@/features/execution/execution-visualizer";
 import { RawJsonViewer } from "@/features/json/raw-json-viewer";
 import { ProvenanceViewer } from "@/features/provenance/provenance-viewer";
 import { useAskQuery } from "@/hooks/useQueries";
+import { useSlowRequest } from "@/hooks/useSlowRequest";
 import { formatCoord, humanize } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useLocationStore } from "@/stores/location";
@@ -52,6 +53,7 @@ export default function AskPage() {
   }, [coordinate, setCoordinate]);
 
   const stage = useAskStages(ask.isPending);
+  const slow = useSlowRequest(ask.isPending);
   const active = ask.isPending || ask.isError || !!ask.data;
   const canSubmit = !!coordinate && question.trim().length > 0 && !ask.isPending;
 
@@ -129,7 +131,7 @@ export default function AskPage() {
 
       {/* Results */}
       <div className="mt-8 space-y-6">
-        {ask.isPending && <AskProgress stage={stage} />}
+        {ask.isPending && <AskProgress stage={stage} slow={slow} />}
 
         {ask.isError && !ask.isPending && (
           <ErrorState
@@ -255,10 +257,16 @@ const STAGES = [
   { label: "Synthesizing", sub: "Composing a cited answer from fetched values", icon: Sparkles },
 ];
 
-function AskProgress({ stage }: { stage: number }) {
+function AskProgress({ stage, slow }: { stage: number; slow: boolean }) {
   return (
     <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
       <div className="mono-eyebrow mb-4">Running the pipeline</div>
+      {slow && (
+        <p className="mb-4 text-[13px] text-muted-foreground">
+          Taking longer than usual — the server may be waking up from idle. This can take up to a
+          minute on the first request.
+        </p>
+      )}
       <ol className="space-y-1">
         {STAGES.map((s, i) => {
           const done = i < stage;

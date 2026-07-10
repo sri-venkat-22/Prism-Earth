@@ -22,6 +22,7 @@ import { RawJsonViewer } from "@/features/json/raw-json-viewer";
 import { ProvenanceViewer } from "@/features/provenance/provenance-viewer";
 import { useFields, usePresets } from "@/hooks/useMeta";
 import { useFetchQuery } from "@/hooks/useQueries";
+import { useSlowRequest } from "@/hooks/useSlowRequest";
 import { cn } from "@/lib/utils";
 import { humanize } from "@/lib/format";
 import { useLocationStore } from "@/stores/location";
@@ -41,6 +42,7 @@ function FetchWorkbench() {
   const [preset, setPreset] = useState<string>("");
   const [fields, setFields] = useState<Set<string>>(new Set());
   const fetchQuery = useFetchQuery();
+  const slow = useSlowRequest(fetchQuery.isPending);
 
   // Seed the selected preset from the URL (e.g. from the Preset Explorer).
   useEffect(() => {
@@ -151,7 +153,17 @@ function FetchWorkbench() {
         </div>
 
         <div className="space-y-4">
-          {fetchQuery.isPending && <LoadingBlock rows={5} />}
+          {fetchQuery.isPending && (
+            <div>
+              {slow && (
+                <p className="mb-3 text-[13px] text-muted-foreground">
+                  Taking longer than usual — the server may be waking up from idle. This can take
+                  up to a minute on the first request.
+                </p>
+              )}
+              <LoadingBlock rows={5} />
+            </div>
+          )}
 
           {fetchQuery.isError && !fetchQuery.isPending && (
             <ErrorState error={fetchQuery.error} onRetry={submit} title="Fetch failed" />
