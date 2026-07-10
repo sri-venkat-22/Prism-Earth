@@ -154,7 +154,10 @@ jobs:
       - name: Build backend image
         uses: docker/build-push-action@v6
         with:
-          context: ./backend
+          # Repo-root context so the Dockerfile can COPY both backend/ and the
+          # top-level configs/ (baked in for PaaS targets without volume mounts).
+          context: .
+          file: ./backend/Dockerfile
           push: false
           tags: terra-backend:ci
           cache-from: type=gha
