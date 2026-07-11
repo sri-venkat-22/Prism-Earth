@@ -1,6 +1,12 @@
 # Pings the Render free-tier backend so it never spins down from 15 min of
 # idle (Render's free plan sleeps and takes ~50s to cold-boot on the next
 # request). Costs nothing: scheduled Actions minutes are free on public repos.
+#
+# GitHub delays/drops scheduled cron on low-traffic repos (observed gaps of
+# 60-200+ min despite the 10-min setting below), so pings often land on a
+# server that's already back asleep and end up doing a real cold-boot wake.
+# --max-time must comfortably exceed that cold-boot time or a slow-but-
+# succeeding wake gets reported as a failure.
 name: Keep backend warm
 
 on:
@@ -15,4 +21,4 @@ jobs:
       - name: Ping health endpoint
         # ponytail: URL hardcoded (single deployment target); move to a repo
         # variable if a second environment ever needs its own keep-warm ping.
-        run: curl -fsS --max-time 60 https://terra-backend-pgtq.onrender.com/api/v1/health
+        run: curl -fsS --max-time 150 https://terra-backend-pgtq.onrender.com/api/v1/health
