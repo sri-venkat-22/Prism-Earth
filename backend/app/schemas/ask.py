@@ -112,13 +112,31 @@ class Trace(BaseModel):
 # --------------------------------------------------------------------------- #
 # Response — SRS §13.13                                                        #
 # --------------------------------------------------------------------------- #
+class DataGap(BaseModel):
+    """A requested field that resolved to nothing, and why (clean-answer rule).
+
+    Gaps live here — a separate top-level list — not stitched into the answer
+    prose. The UI shows them behind the details toggle.
+    """
+
+    field: str
+    reason: str
+
+
 class AskResponse(BaseModel):
-    """The full ``POST /api/v1/ask`` response (SRS §13.13)."""
+    """The full ``POST /api/v1/ask`` response (SRS §13.13).
+
+    ``answer`` is prose only — citations, confidence, gaps, provenance, and the
+    execution trace are separate top-level fields the UI reveals on demand.
+    """
 
     request_id: str
     timestamp: str
     location: FetchLocation
     answer: str
+    confidence: str = Field(..., description="Overall answer confidence: high | medium | low")
     citations: list[Citation]
+    fields_used: list[str] = Field(..., description="Requested fields that resolved to a value")
+    data_gaps: list[DataGap]
     trace: Trace
     provenance: dict[str, ProvenanceObject]

@@ -262,20 +262,9 @@ async def test_run_blocking_bounds_concurrent_blocking_calls(monkeypatch) -> Non
 # --------------------------------------------------------------------------- #
 # 11-C · End-to-end /ask deadline                                             #
 # --------------------------------------------------------------------------- #
-_PLAN = json.dumps(
-    {
-        "intent": "Renewable Energy Site Selection",
-        "presets": ["solar_siting"],
-        "planning_reason": "Deadline test plan.",
-    }
-)
-
-
 async def test_ask_deadline_fails_fast_with_504_semantics() -> None:
     """A stalled stage trips the overall deadline instead of hanging /ask."""
-    pipeline, _ = build_fake_pipeline(
-        planner_json=_PLAN, synthesizer=SlowSynthesizer(), deadline_seconds=0.05
-    )
+    pipeline, _ = build_fake_pipeline(synthesizer=SlowSynthesizer(), deadline_seconds=0.05)
     started = time.perf_counter()
     with pytest.raises(DeadlineExceededError) as excinfo:
         await pipeline.ask(**_POINT, question="Is this suitable for solar?")
@@ -286,7 +275,7 @@ async def test_ask_deadline_fails_fast_with_504_semantics() -> None:
 
 async def test_ask_completes_within_deadline_unaffected() -> None:
     """A healthy pipeline under the same deadline answers normally."""
-    pipeline, _ = build_fake_pipeline(planner_json=_PLAN, deadline_seconds=5.0)
+    pipeline, _ = build_fake_pipeline(deadline_seconds=5.0)
     response = await pipeline.ask(**_POINT, question="Is this suitable for solar?")
     assert response.answer.strip()
 

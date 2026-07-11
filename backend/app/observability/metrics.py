@@ -79,13 +79,6 @@ PIPELINE_STAGE_DURATION = Histogram(
     labelnames=("stage",),
     buckets=_LATENCY_BUCKETS,
 )
-PLANNER_DROPPED_PROPOSALS = Counter(
-    "terra_planner_dropped_proposals_total",
-    "Planner proposals dropped by the catalog constraint (SRS §14.15), by kind. "
-    "A rising rate signals planner-prompt drift or a catalog mismatch.",
-    labelnames=("kind",),
-)
-
 _EXCLUDED_PATHS = frozenset({"/metrics"})
 
 
@@ -166,12 +159,6 @@ def observe_pipeline_stage(stage: str, seconds: float) -> None:
     PIPELINE_STAGE_DURATION.labels(stage=stage).observe(seconds)
 
 
-def record_planner_drop(kind: str) -> None:
-    """Count one dropped planner proposal (unknown_field / planned_field /
-    unknown_preset) so prompt drift or a catalog mismatch is observable (§27.2)."""
-    PLANNER_DROPPED_PROPOSALS.labels(kind=kind).inc()
-
-
 # Re-exported for callers that want to time a block without importing timeit.
 def timer() -> Callable[[], float]:
     """Return a function that yields elapsed seconds since this call."""
@@ -186,6 +173,5 @@ __all__ = [
     "observe_gee_duration",
     "record_cache_event",
     "observe_pipeline_stage",
-    "record_planner_drop",
     "timer",
 ]

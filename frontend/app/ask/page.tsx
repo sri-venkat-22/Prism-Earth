@@ -254,7 +254,7 @@ function useAskStages(pending: boolean) {
 const STAGES = [
   { label: "Planning", sub: "Selecting catalog fields for your question", icon: BrainCircuit },
   { label: "Fetching layers", sub: "Retrieving each field from its connector", icon: Database },
-  { label: "Synthesizing", sub: "Composing a cited answer from fetched values", icon: Sparkles },
+  { label: "Synthesizing", sub: "Composing an answer from the fetched values", icon: Sparkles },
 ];
 
 function AskProgress({ stage, slow }: { stage: number; slow: boolean }) {
@@ -318,10 +318,11 @@ function AskProgress({ stage, slow }: { stage: number; slow: boolean }) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Result: separated Answer / Sourcing / Confidence, then secondary detail    */
+/* Result: clean answer; confidence/caveats/sourcing/trace behind a toggle    */
 /* -------------------------------------------------------------------------- */
 function AskResult({ data }: { data: AskResponse }) {
   const [tab, setTab] = useState<"trace" | "json">("trace");
+  const [showDetails, setShowDetails] = useState(false);
 
   return (
     <motion.div
@@ -330,47 +331,69 @@ function AskResult({ data }: { data: AskResponse }) {
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       className="space-y-6"
     >
-      {/* 1 — Answer */}
-      <AnswerView answer={data.answer} citations={data.citations} />
+      {/* 1 — Answer (prose only; metadata is opt-in below) */}
+      <AnswerView answer={data.answer} />
 
-      {/* 2 — Confidence & caveats (first-class, distinct from provenance) */}
-      <ConfidenceCaveats data={data} />
-
-      {/* 3 — Sourcing / provenance (first-class, audit-ready) */}
-      <section className="rounded-xl border border-border bg-card p-6 sm:p-8">
-        <div className="mono-eyebrow mb-1 flex items-center gap-2">
-          <ScrollText className="h-3.5 w-3.5" /> Sourcing &amp; provenance
-        </div>
-        <p className="mb-5 text-[13px] text-muted-foreground">
-          Every field, the dataset it came from, its license, retrieval time and confidence.
+      {/* 2 — Fields count (always visible) + details toggle */}
+      <div className="flex items-center justify-between px-1">
+        <p className="text-[13px] text-muted-foreground">
+          {data.fields_used.length} fields returned
         </p>
-        <ProvenanceViewer provenance={data.provenance} citations={data.citations} />
-      </section>
+        <button
+          type="button"
+          onClick={() => setShowDetails((v) => !v)}
+          aria-expanded={showDetails}
+          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+        >
+          {showDetails ? "Hide details" : "Show details"}
+          <ChevronDown
+            className={cn("h-3.5 w-3.5 transition-transform", showDetails && "rotate-180")}
+          />
+        </button>
+      </div>
 
-      {/* Secondary — citations + trace + raw JSON */}
-      <section className="rounded-xl border border-border bg-card">
-        <div className="flex items-center gap-1 border-b border-border px-2 py-1.5">
-          <TabButton active={tab === "trace"} onClick={() => setTab("trace")}>
-            <BrainCircuit className="h-3.5 w-3.5" /> Execution trace
-          </TabButton>
-          <TabButton active={tab === "json"} onClick={() => setTab("json")}>
-            <FileJson className="h-3.5 w-3.5" /> Raw JSON
-          </TabButton>
-        </div>
-        <div className="p-5">
-          {tab === "trace" ? (
-            <div className="space-y-6">
-              <ExecutionVisualizer trace={data.trace} />
-              <div>
-                <div className="mono-eyebrow mb-3">Citations ({data.citations.length})</div>
-                <CitationsList citations={data.citations} />
-              </div>
+      {showDetails && (
+        <>
+          {/* Confidence & caveats (distinct from provenance) */}
+          <ConfidenceCaveats data={data} />
+
+          {/* Sourcing / provenance (audit-ready) */}
+          <section className="rounded-xl border border-border bg-card p-6 sm:p-8">
+            <div className="mono-eyebrow mb-1 flex items-center gap-2">
+              <ScrollText className="h-3.5 w-3.5" /> Sourcing &amp; provenance
             </div>
-          ) : (
-            <RawJsonViewer data={data} defaultOpen title="POST /api/v1/ask response" />
-          )}
-        </div>
-      </section>
+            <p className="mb-5 text-[13px] text-muted-foreground">
+              Every field, the dataset it came from, its license, retrieval time and confidence.
+            </p>
+            <ProvenanceViewer provenance={data.provenance} citations={data.citations} />
+          </section>
+
+          {/* Citations + trace + raw JSON */}
+          <section className="rounded-xl border border-border bg-card">
+            <div className="flex items-center gap-1 border-b border-border px-2 py-1.5">
+              <TabButton active={tab === "trace"} onClick={() => setTab("trace")}>
+                <BrainCircuit className="h-3.5 w-3.5" /> Execution trace
+              </TabButton>
+              <TabButton active={tab === "json"} onClick={() => setTab("json")}>
+                <FileJson className="h-3.5 w-3.5" /> Raw JSON
+              </TabButton>
+            </div>
+            <div className="p-5">
+              {tab === "trace" ? (
+                <div className="space-y-6">
+                  <ExecutionVisualizer trace={data.trace} />
+                  <div>
+                    <div className="mono-eyebrow mb-3">Citations ({data.citations.length})</div>
+                    <CitationsList citations={data.citations} />
+                  </div>
+                </div>
+              ) : (
+                <RawJsonViewer data={data} defaultOpen title="POST /api/v1/ask response" />
+              )}
+            </div>
+          </section>
+        </>
+      )}
     </motion.div>
   );
 }
@@ -409,9 +432,9 @@ function ConfidenceCaveats({ data }: { data: AskResponse }) {
     return { counts, layers };
   }, [data]);
 
-  const unavailable = data.trace.synthesizer.unavailable_fields ?? [];
+  const gaps = data.data_gaps ?? [];
   const failures = data.trace.fetch.partial_failures ?? [];
-  const clean = unavailable.length === 0 && failures.length === 0;
+  const clean = gaps.length === 0 && failures.length === 0;
 
   return (
     <section className="rounded-xl border border-border bg-card p-6 sm:p-8">
@@ -446,18 +469,19 @@ function ConfidenceCaveats({ data }: { data: AskResponse }) {
           </p>
         ) : (
           <div className="space-y-3">
-            {unavailable.length > 0 && (
+            {gaps.length > 0 && (
               <div className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2.5">
                 <p className="mb-1.5 text-xs font-medium text-warning">
-                  Marked unavailable ({unavailable.length})
+                  Data gaps ({gaps.length})
                 </p>
                 <div className="flex flex-wrap gap-1.5">
-                  {unavailable.map((f) => (
+                  {gaps.map((g) => (
                     <span
-                      key={f}
+                      key={g.field}
+                      title={g.reason}
                       className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[11px] text-muted-foreground"
                     >
-                      {humanize(f)}
+                      {humanize(g.field)}
                     </span>
                   ))}
                 </div>

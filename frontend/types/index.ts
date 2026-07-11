@@ -256,12 +256,20 @@ export interface Trace {
   total_duration_ms: number;
 }
 
+export interface DataGap {
+  field: string;
+  reason: string;
+}
+
 export interface AskResponse {
   request_id: string;
   timestamp: string;
   location: FetchLocation;
   answer: string;
+  confidence: string;
   citations: Citation[];
+  fields_used: string[];
+  data_gaps: DataGap[];
   trace: Trace;
   provenance: Record<string, ProvenanceObject>;
 }

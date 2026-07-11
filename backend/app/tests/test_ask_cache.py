@@ -9,8 +9,6 @@ actually skips the LLM on a repeat call.
 
 from __future__ import annotations
 
-import json
-
 from app.ask.cache import AskResultCache
 from app.ask.pipeline import AskPipeline
 from app.metadata.catalog import get_catalog
@@ -20,13 +18,6 @@ from app.tests._ask_fakes import FakeLLM, build_fake_pipeline
 from app.tests._fetch_fakes import build_full_orchestrator, make_context
 
 _POINT = {"lat": 17.385, "lng": 78.486}
-_PLAN_JSON = json.dumps(
-    {
-        "intent": "Terrain",
-        "presets": ["terrain"],
-        "planning_reason": "Terrain question needs the terrain preset.",
-    }
-)
 
 
 class FakeRedis:
@@ -53,7 +44,7 @@ class BrokenRedis:
 
 
 async def _sample_response():
-    pipeline, _ = build_fake_pipeline(planner_json=_PLAN_JSON)
+    pipeline, _ = build_fake_pipeline()
     return await pipeline.ask(**_POINT, question="Describe the terrain.")
 
 
@@ -93,13 +84,13 @@ async def test_cache_fails_open_when_redis_is_down() -> None:
 
 
 # --------------------------------------------------------------------------- #
-# Pipeline-level: a repeat identical question skips the LLM entirely           #
+# Pipeline-level: one LLM call per fresh ask, zero on a repeat                 #
 # --------------------------------------------------------------------------- #
-async def test_repeat_question_skips_planner_and_synthesizer() -> None:
+async def test_fresh_ask_costs_one_llm_call_and_repeat_costs_zero() -> None:
     catalog = get_catalog()
-    client = FakeLLM(planner_json=_PLAN_JSON)
+    client = FakeLLM()
     pipeline = AskPipeline(
-        planner=Planner(llm=client, catalog=catalog),
+        planner=Planner(catalog=catalog),
         orchestrator=build_full_orchestrator(make_context()),
         synthesizer=LLMSynthesizer(llm=client),
         catalog=catalog,
@@ -107,9 +98,10 @@ async def test_repeat_question_skips_planner_and_synthesizer() -> None:
     )
 
     first = await pipeline.ask(**_POINT, question="Describe the terrain.")
-    calls_after_first = len(client.calls)
-    assert calls_after_first == 2  # one Planner call, one Synthesizer call
+    # The whole ask spends exactly ONE model call — the Synthesizer's. Planning
+    # is deterministic and free (the LLM quota is the scarce resource).
+    assert len(client.calls) == 1
 
     second = await pipeline.ask(**_POINT, question="Describe the terrain.")
-    assert len(client.calls) == calls_after_first  # no new LLM calls
+    assert len(client.calls) == 1  # cache hit — no new LLM calls
     assert second.answer == first.answer

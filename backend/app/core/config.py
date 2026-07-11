@@ -133,20 +133,23 @@ class Settings(BaseSettings):
     earth_engine_project: str | None = None
 
     # --- AI pipeline / LLM (SRS §9, §14) --------------------------------
-    # The Planner and Synthesizer call a configurable model through LiteLLM
+    # The Synthesizer — /ask's single LLM call — goes through LiteLLM
     # (SRS §9: "LangChain, LiteLLM, OpenAI / Claude (configurable)"). The model
     # string is a LiteLLM route (e.g. ``anthropic/claude-opus-4-8`` or
     # ``openai/gpt-4o``); the provider credential is read from the provider's
     # own environment variable (``ANTHROPIC_API_KEY`` / ``OPENAI_API_KEY``) or
     # from ``llm_api_key`` below. When no credential is configured, ``/ask``
-    # returns a clear 503 rather than fabricating a plan or answer (SRS §38.8).
+    # returns a clear 503 rather than fabricating an answer (SRS §38.8).
     llm_model: str = "anthropic/claude-opus-4-8"
     llm_temperature: float = (
-        0.0  # deterministic planning (SRS §14.13); dropped for models that reject it
+        0.0  # deterministic synthesis (SRS §14.13); dropped for models that reject it
     )
-    llm_max_tokens: int = 1024
+    llm_max_tokens: int = 2048
     llm_timeout: float = 30.0
     llm_api_key: str | None = None
+    # "disable" turns off hidden reasoning (e.g. Gemini 2.5 thinking) so the
+    # token budget goes to the visible answer; dropped where unsupported.
+    llm_reasoning_effort: str | None = "disable"
 
     # --- Authentication (SRS §13.20, §13.19) ----------------------------
     # V1.1 separates public discovery from authenticated data access. Auth is a

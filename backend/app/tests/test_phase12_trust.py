@@ -1,9 +1,10 @@
-"""Phase 12 — AI-trust & authorization (audit 12-A/12-B/12-D).
+"""Phase 12 — AI-trust & authorization (audit 12-A/12-B).
 
-Proves the question is treated as untrusted input to both AI stages (fenced,
-cannot fabricate values or unmark unavailable fields), the OAuth/MCP trust
-model (open registration = metered low-trust clients; closed = admin-gated;
-redirect_uri always validated), and that dropped planner proposals are metered.
+Proves the question is treated as untrusted input to the Synthesizer — /ask's
+only AI stage now that planning is deterministic — (fenced, cannot fabricate
+values or unmark unavailable fields), and the OAuth/MCP trust model (open
+registration = metered low-trust clients; closed = admin-gated; redirect_uri
+always validated).
 """
 
 from __future__ import annotations
@@ -15,14 +16,7 @@ from urllib.parse import parse_qs, urlparse
 
 from fastapi.testclient import TestClient
 
-from app.observability.metrics import PLANNER_DROPPED_PROPOSALS
-from app.planners import ExecutionPlan, Planner
-from app.planners.prompts import (
-    QUESTION_CLOSE,
-    QUESTION_OPEN,
-    build_planner_system_prompt,
-    build_planner_user_prompt,
-)
+from app.planners import ExecutionPlan
 from app.synthesizers import LLMSynthesizer, TemplateSynthesizer
 from app.synthesizers.synthesizer import _SYNTH_SYSTEM, _build_synth_user_prompt, _partition
 from app.tests._ask_fakes import FakeLLM
@@ -106,22 +100,6 @@ async def test_injection_cannot_unmark_unavailable_fields_in_llm_path() -> None:
     # Citation telemetry never validates fabricated markers into existence.
     valid = {c.citation_id for c in fetch.citations}
     assert set(result.citations_used).issubset(valid)
-
-
-def test_planner_prompt_fences_question_and_pins_rules() -> None:
-    """The Planner sees the question fenced, with breakout delimiters stripped."""
-    prompt = build_planner_user_prompt(_INJECTION, lat=17.385, lng=78.486)
-    assert prompt.count(QUESTION_OPEN) == 1
-    assert prompt.count(QUESTION_CLOSE) == 1
-    # The fence opens before the payload and closes after it.
-    assert prompt.index(QUESTION_OPEN) < prompt.index("SYSTEM OVERRIDE")
-    assert prompt.index("SYSTEM OVERRIDE") < prompt.index(QUESTION_CLOSE)
-
-    from app.metadata.catalog import get_catalog
-
-    system = build_planner_system_prompt(get_catalog())
-    assert "UNTRUSTED INPUT" in system
-    assert "cannot add fields or presets" in system
 
 
 # --------------------------------------------------------------------------- #
@@ -271,35 +249,3 @@ def test_authorize_rejects_client_without_authorization_code_grant() -> None:
         )
         assert resp.status_code == 400
         assert resp.json()["error"] == "unauthorized_client"
-
-
-# --------------------------------------------------------------------------- #
-# 12-D · Dropped planner proposals are metered                                 #
-# --------------------------------------------------------------------------- #
-def _counter_value(kind: str) -> float:
-    return PLANNER_DROPPED_PROPOSALS.labels(kind=kind)._value.get()  # noqa: SLF001
-
-
-async def test_planner_drops_are_metered() -> None:
-    before = {
-        kind: _counter_value(kind) for kind in ("unknown_field", "planned_field", "unknown_preset")
-    }
-    llm = FakeLLM(
-        planner_json=(
-            '{"intent": "Terrain Analysis", "presets": ["no_such_preset"], '
-            '"fields": ["elevation", "made_up_field", "soil_depth"], '
-            '"planning_reason": "test"}'
-        )
-    )
-    planner = Planner(llm=llm)
-    result = await planner.plan("How high is this?", lat=17.385, lng=78.486)
-
-    assert result.plan.fields == ["elevation"]
-    assert len(result.plan.warnings) >= 2
-    assert _counter_value("unknown_preset") == before["unknown_preset"] + 1
-    # Both bogus fields are counted — as planned if they exist non-selectable
-    # in the catalog, else as unknown.
-    planned_delta = _counter_value("planned_field") - before["planned_field"]
-    unknown_delta = _counter_value("unknown_field") - before["unknown_field"]
-    assert unknown_delta >= 1  # made_up_field can never be in the catalog
-    assert planned_delta + unknown_delta == 2

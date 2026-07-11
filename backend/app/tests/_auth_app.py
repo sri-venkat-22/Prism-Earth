@@ -8,7 +8,6 @@ Redis, GEE, or LLM (mirrors the ``get_fetch_orchestrator`` override pattern).
 
 from __future__ import annotations
 
-import json
 from collections.abc import Iterator
 from contextlib import contextmanager
 
@@ -48,9 +47,7 @@ def auth_client(
         context=make_context(state="Telangana", district="Hyderabad"),
         terrain_source=FakeTerrainSource(elevation=542.16, slope=3.4),
     )
-    pipeline, _ = build_fake_pipeline(
-        planner_json=json.dumps({"intent": "Terrain Analysis", "fields": ["elevation"]})
-    )
+    pipeline, _ = build_fake_pipeline()
 
     app.dependency_overrides[get_token_store] = lambda: token_store
     app.dependency_overrides[get_client_store] = lambda: client_store

@@ -6,6 +6,7 @@ the readiness probe. No caching logic is implemented in Phase 0.
 
 from __future__ import annotations
 
+import certifi
 import redis.asyncio as aioredis
 
 from app.core.config import Settings, get_settings
@@ -21,11 +22,13 @@ def init_redis(settings: Settings | None = None) -> aioredis.Redis:
     global _client
     if _client is None:
         settings = settings or get_settings()
-        _client = aioredis.from_url(
-            settings.redis_url,
-            encoding="utf-8",
-            decode_responses=True,
-        )
+        kwargs: dict[str, object] = {"encoding": "utf-8", "decode_responses": True}
+        if settings.redis_url.startswith("rediss://"):
+            # Python venvs (notably on macOS) often lack a system CA bundle, so
+            # every TLS handshake to Upstash fails CERTIFICATE_VERIFY_FAILED and
+            # the fail-open caches silently never cache. Pin certifi's bundle.
+            kwargs["ssl_ca_certs"] = certifi.where()
+        _client = aioredis.from_url(settings.redis_url, **kwargs)
         logger.info("redis.client.initialized")
     return _client
 

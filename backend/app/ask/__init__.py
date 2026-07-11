@@ -38,7 +38,7 @@ def build_ask_pipeline(
     client = llm or build_llm_client()
     settings = get_settings()
     return AskPipeline(
-        planner=planner or Planner(llm=client, catalog=catalog),
+        planner=planner or Planner(catalog=catalog),
         orchestrator=orchestrator or build_fetch_orchestrator(session),
         synthesizer=synthesizer or LLMSynthesizer(llm=client),
         catalog=catalog,

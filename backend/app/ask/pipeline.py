@@ -31,13 +31,14 @@ from app.planners.planner import PlanResult
 from app.schemas.ask import (
     AskResponse,
     ConnectorExecution,
+    DataGap,
     FetchTrace,
     PlannerTrace,
     SynthesizerTrace,
     Trace,
 )
 from app.schemas.fetch import FetchResponse
-from app.synthesizers import SynthesisResult, Synthesizer
+from app.synthesizers import SynthesisResult, Synthesizer, data_gaps_for
 
 logger = get_logger(__name__)
 
@@ -158,7 +159,10 @@ class AskPipeline:
             timestamp=fetch.timestamp,
             location=fetch.location,
             answer=synthesis.answer,
+            confidence=self._overall_confidence(fetch),
             citations=fetch.citations,
+            fields_used=trace.fetch.resolved_fields,
+            data_gaps=[DataGap(field=name, reason=reason) for name, reason in data_gaps_for(fetch)],
             trace=trace,
             provenance=fetch.provenance,
         )
@@ -218,6 +222,18 @@ class AskPipeline:
             synthesizer=synth_trace,
             total_duration_ms=round(total_ms, 2),
         )
+
+    @staticmethod
+    def _overall_confidence(fetch: FetchResponse) -> str:
+        """Deterministic overall confidence from the resolved fields' levels."""
+        levels = {obj.confidence.value for obj in fetch.fields.values() if obj.value is not None}
+        if not levels:
+            return "low"
+        if levels == {"high"}:
+            return "high"
+        if levels <= {"low", "unknown"}:
+            return "low"
+        return "medium"
 
     def _connector_executions(self, fetch: FetchResponse) -> list[ConnectorExecution]:
         """Group requested fields by owning connector and mark failures (§13.14)."""

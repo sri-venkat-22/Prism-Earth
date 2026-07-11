@@ -76,15 +76,17 @@ class LiteLLMClient:
         *,
         model: str,
         temperature: float = 0.0,
-        max_tokens: int = 1024,
+        max_tokens: int = 2048,
         timeout: float = 30.0,
         api_key: str | None = None,
+        reasoning_effort: str | None = None,
     ) -> None:
         self._model = model
         self._temperature = temperature
         self._max_tokens = max_tokens
         self._timeout = timeout
         self._api_key = api_key
+        self._reasoning_effort = reasoning_effort
 
     @property
     def model(self) -> str:
@@ -109,6 +111,11 @@ class LiteLLMClient:
         }
         if self._api_key:
             kwargs["api_key"] = self._api_key
+        if self._reasoning_effort:
+            # "disable" turns off Gemini 2.5's thinking, which otherwise burns
+            # the max_tokens budget on hidden reasoning and truncates the
+            # visible answer. Dropped harmlessly where unsupported (drop_params).
+            kwargs["reasoning_effort"] = self._reasoning_effort
         if json_object:
             kwargs["response_format"] = {"type": "json_object"}
 
@@ -194,6 +201,7 @@ def build_llm_client(settings: Settings | None = None) -> LLMClient:
         max_tokens=settings.llm_max_tokens,
         timeout=settings.llm_timeout,
         api_key=settings.llm_api_key,
+        reasoning_effort=settings.llm_reasoning_effort,
     )
 
 
