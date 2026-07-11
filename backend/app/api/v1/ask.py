@@ -11,6 +11,8 @@ Error semantics:
 - An empty ``question`` → ``422`` (request validation).
 - The language model being unavailable/misconfigured → ``503`` (SRS §38.8): the
   platform reports the limitation rather than fabricating a plan or answer.
+- The language model provider's own rate/quota limit (e.g. a free-tier daily
+  request cap) → ``429`` — the caller's to retry later, distinct from an outage.
 - A connector failing at runtime never aborts the request — the answer is
   synthesized from the fields that resolved, and the failure appears under
   ``trace.fetch.partial_failures`` (SRS §15.16).

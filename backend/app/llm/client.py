@@ -24,7 +24,7 @@ from typing import Protocol, runtime_checkable
 from pydantic import BaseModel, ConfigDict
 
 from app.core.config import Settings, get_settings
-from app.core.errors import AppError
+from app.core.errors import AppError, RateLimitError
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -114,14 +114,34 @@ class LiteLLMClient:
 
         try:
             response = await acompletion(**kwargs)
-        except Exception as exc:  # provider/auth/network errors -> honest 503
+        except Exception as exc:
             logger.warning("llm.completion_failed", model=self._model, error=str(exc))
-            raise LLMError(
+            # A provider rate/quota limit (e.g. Gemini's free-tier daily request
+            # cap) is the caller's to retry later, not an outage — surfaced as
+            # 429 rather than the generic 503 so it reads correctly. The
+            # provider's own retry-delay hint is unreliable for daily quotas
+            # (it can suggest seconds against a limit that resets at midnight),
+            # so no Retry-After is set rather than promise a wrong wait time.
+            if _is_provider_rate_limit(exc):
+                raise RateLimitError(
+                    "The language model provider's request quota is exhausted for now. "
+                    "Please try again later."
+                ) from exc
+            raise LLMError(  # provider/auth/network errors -> honest 503
                 "The language model request failed.",
                 details=f"{type(exc).__name__}: {exc}",
             ) from exc
 
         return _to_result(response, self._model)
+
+
+def _is_provider_rate_limit(exc: Exception) -> bool:
+    """Whether ``exc`` is the provider's own rate/quota limit (not a local error)."""
+    try:
+        import litellm  # noqa: PLC0415 (lazy — see module docstring)
+    except ImportError:  # pragma: no cover - litellm always installed to reach here
+        return False
+    return isinstance(exc, litellm.RateLimitError)
 
 
 def _load_litellm_acompletion():  # type: ignore[no-untyped-def]

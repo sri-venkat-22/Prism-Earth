@@ -7,9 +7,11 @@ network is used — the LiteLLM loader is monkeypatched.
 
 from __future__ import annotations
 
+import litellm
 import pytest
 
 from app.core.config import Settings
+from app.core.errors import RateLimitError
 from app.llm import LiteLLMClient, LLMError, build_llm_client
 
 
@@ -27,6 +29,19 @@ async def test_complete_wraps_provider_errors_as_llm_error(monkeypatch: pytest.M
     client = LiteLLMClient(model="anthropic/claude-opus-4-8")
     with pytest.raises(LLMError):
         await client.complete(system="s", user="u")
+
+
+async def test_complete_maps_provider_rate_limit_to_429(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A free-tier daily quota hit (Gemini et al.) is the caller's to retry
+    # later, not a Terra outage — must not collapse into the generic 503.
+    async def quota_exhausted(**kwargs: object) -> object:
+        raise litellm.RateLimitError("quota exceeded", "gemini", "gemini-2.5-flash")
+
+    monkeypatch.setattr("app.llm.client._load_litellm_acompletion", lambda: quota_exhausted)
+    client = LiteLLMClient(model="gemini/gemini-2.5-flash")
+    with pytest.raises(RateLimitError) as excinfo:
+        await client.complete(system="s", user="u")
+    assert excinfo.value.status_code == 429
 
 
 async def test_complete_parses_openai_shaped_response(monkeypatch: pytest.MonkeyPatch) -> None:
