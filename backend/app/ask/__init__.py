@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.ask.cache import AskResultCache
 from app.ask.pipeline import AskPipeline
 from app.core.config import get_settings
 from app.fetchers import FetchOrchestrator, build_fetch_orchestrator
@@ -35,16 +36,19 @@ def build_ask_pipeline(
     """
     catalog = get_catalog()
     client = llm or build_llm_client()
+    settings = get_settings()
     return AskPipeline(
         planner=planner or Planner(llm=client, catalog=catalog),
         orchestrator=orchestrator or build_fetch_orchestrator(session),
         synthesizer=synthesizer or LLMSynthesizer(llm=client),
         catalog=catalog,
-        deadline_seconds=get_settings().ask_deadline_seconds,
+        deadline_seconds=settings.ask_deadline_seconds,
+        cache=AskResultCache(ttl_seconds=settings.ask_cache_ttl_seconds),
     )
 
 
 __all__ = [
     "AskPipeline",
+    "AskResultCache",
     "build_ask_pipeline",
 ]

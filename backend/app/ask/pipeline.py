@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import time
 
+from app.ask.cache import AskResultCache
 from app.core.errors import DeadlineExceededError
 from app.core.logging import get_logger
 from app.fetchers import FetchOrchestrator
@@ -52,6 +53,7 @@ class AskPipeline:
         synthesizer: Synthesizer,
         catalog: Catalog | None = None,
         deadline_seconds: float | None = None,
+        cache: AskResultCache | None = None,
     ) -> None:
         self._planner = planner
         self._orchestrator = orchestrator
@@ -60,35 +62,52 @@ class AskPipeline:
         # End-to-end wall-clock budget across all three stages (SRS §7.1).
         # ``None`` disables the deadline (per-stage timeouts still apply).
         self._deadline_seconds = deadline_seconds
+        # ``None`` disables the result cache (e.g. in tests that assert on
+        # every call actually running the pipeline).
+        self._cache = cache
 
     async def ask(
         self, *, lat: float, lng: float, question: str, request_id: str = ""
     ) -> AskResponse:
         """Answer a natural-language question about a coordinate (SRS §13.13).
 
-        The whole pipeline runs under one wall-clock deadline. A *partial*
-        fetch timeout never trips it: the Fetch Engine's own per-connector
-        deadline turns a slow connector into ``connector_timeout`` nulls and
-        the answer is synthesized from the fields that resolved (SRS §15.16).
-        Only when the pipeline as a whole cannot finish in time — e.g. a
-        stalled LLM provider — does the request fail, with 504 rather than an
+        A cache hit on the exact (question, coordinate) pair short-circuits
+        the whole pipeline — no Planner or Synthesizer call, so a repeat
+        identical question never spends a second LLM request (SRS §23).
+
+        Otherwise the whole pipeline runs under one wall-clock deadline. A
+        *partial* fetch timeout never trips it: the Fetch Engine's own
+        per-connector deadline turns a slow connector into ``connector_timeout``
+        nulls and the answer is synthesized from the fields that resolved (SRS
+        §15.16). Only when the pipeline as a whole cannot finish in time — e.g.
+        a stalled LLM provider — does the request fail, with 504 rather than an
         indefinite hang.
         """
+        if self._cache is not None:
+            cached = await self._cache.get(question=question, lat=lat, lng=lng)
+            if cached is not None:
+                return cached
+
         run = self._run(lat=lat, lng=lng, question=question, request_id=request_id)
         if self._deadline_seconds is None:
-            return await run
-        try:
-            return await asyncio.wait_for(run, timeout=self._deadline_seconds)
-        except TimeoutError as exc:
-            logger.warning(
-                "ask.deadline_exceeded",
-                request_id=request_id,
-                deadline_seconds=self._deadline_seconds,
-            )
-            raise DeadlineExceededError(
-                f"/ask exceeded its {self._deadline_seconds:g}s deadline; "
-                "try a narrower question or retry later."
-            ) from exc
+            response = await run
+        else:
+            try:
+                response = await asyncio.wait_for(run, timeout=self._deadline_seconds)
+            except TimeoutError as exc:
+                logger.warning(
+                    "ask.deadline_exceeded",
+                    request_id=request_id,
+                    deadline_seconds=self._deadline_seconds,
+                )
+                raise DeadlineExceededError(
+                    f"/ask exceeded its {self._deadline_seconds:g}s deadline; "
+                    "try a narrower question or retry later."
+                ) from exc
+
+        if self._cache is not None:
+            await self._cache.put(response, question=question, lat=lat, lng=lng)
+        return response
 
     async def _run(self, *, lat: float, lng: float, question: str, request_id: str) -> AskResponse:
         started = time.perf_counter()

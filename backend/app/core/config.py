@@ -100,6 +100,12 @@ class Settings(BaseSettings):
     # End-to-end wall-clock budget for /ask (planner + fetch + synthesizer).
     # Expiry returns 504 DEADLINE_EXCEEDED instead of holding the request open.
     ask_deadline_seconds: float = 60.0
+    # How long an /ask answer is cached under its exact (question, coordinate)
+    # key (SRS §23). /ask has no auth wall and its LLM can carry a small
+    # provider quota, so repeat identical questions (e.g. the Ask page's example
+    # prompts) reuse a prior answer instead of spending a fresh LLM call. 0
+    # disables the cache.
+    ask_cache_ttl_seconds: int = 3600
 
     # --- Config files (SRS §10, §11.8) ----------------------------------
     config_dir: Path = BASE_DIR / "configs"
