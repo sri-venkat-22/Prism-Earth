@@ -337,7 +337,7 @@ function AskResult({ data }: { data: AskResponse }) {
       {/* 2 — Fields count (always visible) + details toggle */}
       <div className="flex items-center justify-between px-1">
         <p className="text-[13px] text-muted-foreground">
-          {data.fields_used.length} fields returned
+          {(data.fields_used ?? []).length} fields returned
         </p>
         <button
           type="button"
@@ -471,9 +471,7 @@ function ConfidenceCaveats({ data }: { data: AskResponse }) {
           <div className="space-y-3">
             {gaps.length > 0 && (
               <div className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2.5">
-                <p className="mb-1.5 text-xs font-medium text-warning">
-                  Data gaps ({gaps.length})
-                </p>
+                <p className="mb-1.5 text-xs font-medium text-warning">Data gaps ({gaps.length})</p>
                 <div className="flex flex-wrap gap-1.5">
                   {gaps.map((g) => (
                     <span

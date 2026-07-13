@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
   await mockApi(page);
 });
 
-test("Ask flow: question → cited answer + execution trace (SRS §36.1)", async ({ page }) => {
+test("Ask flow: clean answer, metadata behind the details toggle (SRS §36.1)", async ({ page }) => {
   await page.goto("/ask");
 
   // Hero renders in the initial state.
@@ -17,13 +17,16 @@ test("Ask flow: question → cited answer + execution trace (SRS §36.1)", async
   await page.getByLabel("Your question").fill("Is this area suitable for a solar farm?");
   await page.getByRole("button", { name: "Ask", exact: true }).click();
 
-  // The synthesized answer appears...
+  // The synthesized answer appears, with the fields count visible by default...
   await expect(page.getByText(/broadly suitable for solar development/i)).toBeVisible();
+  await expect(page.getByText("2 fields returned")).toBeVisible();
 
-  // ...with its citation sourced from the mocked response.
+  // ...while sourcing and the execution trace stay hidden until requested.
+  await expect(page.getByText("Copernicus DEM GLO-30")).toHaveCount(0);
+  await page.getByRole("button", { name: "Show details" }).click();
+
+  // The citation and the execution trace (planner intent) are revealed.
   await expect(page.getByText("Copernicus DEM GLO-30").first()).toBeVisible();
-
-  // The execution trace (planner intent) is shown.
   await expect(page.getByText(/Solar Suitability/i).first()).toBeVisible();
 });
 

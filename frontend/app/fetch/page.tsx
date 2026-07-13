@@ -157,8 +157,8 @@ function FetchWorkbench() {
             <div>
               {slow && (
                 <p className="mb-3 text-[13px] text-muted-foreground">
-                  Taking longer than usual — the server may be waking up from idle. This can take
-                  up to a minute on the first request.
+                  Taking longer than usual — the server may be waking up from idle. This can take up
+                  to a minute on the first request.
                 </p>
               )}
               <LoadingBlock rows={5} />

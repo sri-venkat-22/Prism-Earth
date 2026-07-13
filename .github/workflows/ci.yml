@@ -132,7 +132,9 @@ jobs:
         working-directory: frontend
         run: npm audit --omit=dev --audit-level=high
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@0.24.0
+        # Trivy retired its unprefixed tags (0.24.0 stopped resolving and broke
+        # the job at "Set up job"); current releases are v-prefixed.
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .

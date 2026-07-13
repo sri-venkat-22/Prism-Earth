@@ -226,7 +226,10 @@ export const askFixture = {
   answer:
     "This location in Hyderabad sits at roughly 542 m elevation with gentle slope, " +
     "making it broadly suitable for solar development, subject to land-use checks.",
+  confidence: "high",
   citations: fetchFixture.citations,
+  fields_used: ["elevation", "district_name"],
+  data_gaps: [],
   trace: {
     planner: {
       intent: "Solar Suitability",
