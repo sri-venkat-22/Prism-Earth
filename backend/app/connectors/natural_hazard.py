@@ -248,10 +248,14 @@ class NaturalHazardConnector(BaseConnector):
         await self.validate(fields)
         need_vector = any(f in _VECTOR_FIELDS for f in fields)
         need_raster = any(f in _RASTER_FIELDS for f in fields)
+        # The OSM waterbody layer is seeded per covered state (SRS §20.4);
+        # outside every seeded state the KNN would name another state's water,
+        # so skip it and gap the vector fields (the global rasters still serve).
+        outside_seed = context.spatial.state is None
 
         vector = (
             await self._vector.sample(context.lat, context.lng)
-            if need_vector
+            if need_vector and not outside_seed
             else HazardVectorSample()
         )
         raster = (
@@ -271,7 +275,7 @@ class NaturalHazardConnector(BaseConnector):
                     value=value,
                     dataset=dataset,
                     confidence=confidence,
-                    null_reason=None if value is not None else _null_reason(field),
+                    null_reason=None if value is not None else _null_reason(field, outside_seed),
                     derivation=_DERIVATION.get(field),
                 )
             )
@@ -286,6 +290,22 @@ class NaturalHazardConnector(BaseConnector):
         )
 
 
-def _null_reason(field: str) -> NullReason:
-    """A raster miss is out-of-coverage; a vector miss is feature-absent (SRS §15.17)."""
-    return NullReason.OUTSIDE_COVERAGE if field in _RASTER_FIELDS else NullReason.DATA_UNAVAILABLE
+# JRC Global Surface Water is a global dataset that masks pixels where water was
+# never observed — so a null means "no water here," an in-coverage feature-absent
+# miss, never an extent gap. It must NOT be reported as OUTSIDE_COVERAGE, or a
+# routine dry-land query would falsely claim the point is outside the source's
+# coverage. flood_hazard_class, by contrast, nulls only when GloFAS models no
+# inundation at any return period — genuinely outside the flood hazard extent.
+_GLOBAL_RASTER_MISS: frozenset[str] = frozenset({"surface_water_permanence_pct"})
+
+
+def _null_reason(field: str, outside_seed: bool) -> NullReason:
+    """Classify a null (SRS §15.17). A feature/data miss inside the dataset's
+    extent is DATA_UNAVAILABLE so it keeps the field's specific catalog
+    null_meaning; a genuine extent gap (outside the OSM seed, or outside the
+    flood model) is OUTSIDE_COVERAGE."""
+    if field in _GLOBAL_RASTER_MISS:
+        return NullReason.DATA_UNAVAILABLE
+    if field in _RASTER_FIELDS or outside_seed:
+        return NullReason.OUTSIDE_COVERAGE
+    return NullReason.DATA_UNAVAILABLE

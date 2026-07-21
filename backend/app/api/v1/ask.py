@@ -60,9 +60,19 @@ async def ask(
     API surface (and the MCP server) is ``/fetch``.
     """
     correlation_id = getattr(request.state, "correlation_id", "")
-    return await pipeline.ask(
+    response = await pipeline.ask(
         lat=payload.lat,
         lng=payload.lng,
         question=payload.question,
         request_id=correlation_id,
     )
+    # Audit facts for the request-log middleware (SRS §22.3). A cached answer
+    # still carries the request_id it was minted under, so a mismatch with this
+    # request's correlation id is exactly an ask-cache hit.
+    request.state.audit = {
+        "lat": payload.lat,
+        "lng": payload.lng,
+        "field_count": len(response.fields_used),
+        "cache_hit": response.request_id != correlation_id,
+    }
+    return response

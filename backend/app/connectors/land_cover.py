@@ -194,7 +194,12 @@ class LandCoverConnector(BaseConnector):
                     value=value,
                     dataset=dataset,
                     confidence=confidence,
-                    null_reason=None if value is not None else NullReason.OUTSIDE_COVERAGE,
+                    # ESA WorldCover / Sentinel-2 / MODIS all cover India in
+                    # full, so a null is an in-coverage data miss (cloud gap,
+                    # masked class), never an extent gap. DATA_UNAVAILABLE keeps
+                    # the field's catalog null_meaning instead of a false
+                    # out-of-coverage claim (SRS §15.17).
+                    null_reason=None if value is not None else NullReason.DATA_UNAVAILABLE,
                 )
             )
         return results

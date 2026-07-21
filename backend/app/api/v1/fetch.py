@@ -57,10 +57,19 @@ async def fetch(
     is unchanged.
     """
     correlation_id = getattr(request.state, "correlation_id", "")
-    return await orchestrator.fetch(
+    response = await orchestrator.fetch(
         lat=payload.lat,
         lng=payload.lng,
         fields=payload.fields,
         preset=payload.preset,
         request_id=correlation_id,
     )
+    # Audit facts for the request-log middleware (SRS §22.3). /fetch has no
+    # whole-response cache (per-field hits are partial), so cache_hit stays null.
+    request.state.audit = {
+        "lat": payload.lat,
+        "lng": payload.lng,
+        "field_count": len(response.fields),
+        "cache_hit": None,
+    }
+    return response

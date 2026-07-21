@@ -32,6 +32,7 @@ Question → Planner → Fetch Engine → Citation Engine → Synthesizer → Ci
 | [Architecture](architecture.md) | Layered system design and data flow (SRS §8, §11, §12) |
 | [Developer Guide](developer-guide.md) | Local setup, tests, adding a connector (SRS §35) |
 | [Deployment Guide](deployment.md) | Docker, Nginx, production topology (SRS §33) |
+| [Deploy Runbook (Render/Vercel)](deploy-runbook.md) | How production actually deploys today; drift diagnosis |
 | [Observability](observability.md) | Metrics, tracing, logs, dashboards (SRS §27) |
 | [Security](security.md) | Auth, rate limiting, headers, scanning (SRS §29) |
 | [API Reference](api.md) | REST endpoints, OpenAPI, Swagger, ReDoc (SRS §13) |

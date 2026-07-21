@@ -82,6 +82,21 @@ class InfrastructureConnector(BaseConnector):
 
     async def fetch(self, fields: list[str], context: FetchContext) -> list[FieldResult]:
         await self.validate(fields)
+        # The OSM extract is seeded per covered state (SRS §20.4). Outside every
+        # seeded state the KNN still returns a row — the distance to another
+        # state's network, a real number that isn't this location's — so gap
+        # instead, mirroring the Administrative connector (SRS §15.17).
+        if context.spatial.state is None:
+            return [
+                FieldResult(
+                    field=field,
+                    value=None,
+                    dataset=_OSM,
+                    confidence=Confidence.HIGH,
+                    null_reason=NullReason.OUTSIDE_COVERAGE,
+                )
+                for field in fields
+            ]
         sample = await self._source.sample(context.lat, context.lng)
         values = sample.model_dump()
 

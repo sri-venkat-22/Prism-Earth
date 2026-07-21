@@ -44,6 +44,7 @@ nav:
       - Architecture: architecture.md
       - Developer Guide: developer-guide.md
       - Deployment Guide: deployment.md
+      - Deploy Runbook (Render/Vercel): deploy-runbook.md
       - Observability: observability.md
       - Security: security.md
   - Reference:

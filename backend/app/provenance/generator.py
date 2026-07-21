@@ -24,6 +24,17 @@ from app.datasets.registry import DatasetRegistry
 from app.metadata.catalog import Catalog
 from app.metadata.enums import DataType, Layer
 
+# Categorical reasons describe the *request's* situation, not the field's usual
+# miss semantics, so they override the catalog's per-field null_meaning — which
+# is written for the in-coverage miss ("No substation within the search
+# radius") and would mislead for a coverage gap or an outage (SRS §17.6).
+_CATEGORICAL_REASON_TEXT: dict[NullReason, str] = {
+    NullReason.OUTSIDE_COVERAGE: "Outside the data source's coverage for this location.",
+    NullReason.UNSUPPORTED_STATE: "Not yet available outside the supported pilot region.",
+    NullReason.CONNECTOR_TIMEOUT: "Temporarily unavailable — the data source did not respond.",
+    NullReason.DATASET_UNAVAILABLE: "Temporarily unavailable — the data source is offline.",
+}
+
 
 class FieldProvenance(BaseModel):
     """The full lineage of one returned field (SRS §17.2, §17.3).
@@ -86,7 +97,12 @@ class ProvenanceGenerator:
         # by the Citation Engine (SRS §16.15); a null may name a not-yet-registered
         # source, which must not break provenance.
         meta = self._datasets.get(result.dataset)
-        null_meaning = field.null_meaning if result.is_null else None
+        null_meaning = None
+        if result.is_null:
+            reason_text = (
+                _CATEGORICAL_REASON_TEXT.get(result.null_reason) if result.null_reason else None
+            )
+            null_meaning = reason_text or field.null_meaning
 
         return FieldProvenance(
             field=result.field,

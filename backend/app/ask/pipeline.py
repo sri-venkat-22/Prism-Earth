@@ -102,8 +102,9 @@ class AskPipeline:
                     deadline_seconds=self._deadline_seconds,
                 )
                 raise DeadlineExceededError(
-                    f"/ask exceeded its {self._deadline_seconds:g}s deadline; "
-                    "try a narrower question or retry later."
+                    f"/ask exceeded its {self._deadline_seconds:g}s deadline. The fields "
+                    "fetched so far are now cached for this location, so an immediate "
+                    "retry usually succeeds."
                 ) from exc
 
         if self._cache is not None:

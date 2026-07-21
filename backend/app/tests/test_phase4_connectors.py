@@ -81,11 +81,14 @@ async def test_land_cover_returns_values() -> None:
     assert results["wetland_presence"].value is False
 
 
-async def test_land_cover_null_when_no_coverage() -> None:
+async def test_land_cover_null_is_in_coverage_miss() -> None:
+    # WorldCover/Sentinel/MODIS cover India in full, so a null is an in-coverage
+    # data miss (DATA_UNAVAILABLE, keeps the field's null_meaning), never a false
+    # out-of-coverage claim.
     connector = LandCoverConnector(FakeLandCoverSource(LandCoverSample()))
     (result,) = await connector.fetch(["dominant_land_cover"], _ctx())
     assert result.value is None
-    assert result.null_reason is NullReason.OUTSIDE_COVERAGE
+    assert result.null_reason is NullReason.DATA_UNAVAILABLE
 
 
 # --------------------------------------------------------------------------- #
@@ -180,6 +183,41 @@ async def test_utilities_cannot_serve_telecom() -> None:
         await connector.validate(["telecom_coverage"])
 
 
+async def test_infrastructure_outside_seeded_state_gaps_not_knn() -> None:
+    """Outside every seeded state the KNN must not run — the fake source would
+    return 1500 m; a null with OUTSIDE_COVERAGE proves the gate (SRS §15.17)."""
+    connector = InfrastructureConnector(FakeInfrastructureSource())
+    (result,) = await connector.fetch(["nearest_highway_distance"], _ctx(state=None))
+    assert result.value is None
+    assert result.null_reason is NullReason.OUTSIDE_COVERAGE
+
+
+async def test_utilities_outside_seeded_state_gaps_not_knn() -> None:
+    connector = UtilitiesConnector(FakeUtilitiesSource())
+    (result,) = await connector.fetch(["nearest_substation_distance"], _ctx(state=None))
+    assert result.value is None
+    assert result.null_reason is NullReason.OUTSIDE_COVERAGE
+
+
+async def test_hazard_waterbody_gaps_outside_seed_while_rasters_serve() -> None:
+    """The OSM waterbody KNN gates on seeded-state coverage; the global GEE
+    rasters (flood, surface water, fire) are unaffected by the gate."""
+    connector = NaturalHazardConnector(
+        vector=FakeHazardVectorSource(), raster=FakeHazardRasterSource()
+    )
+    results = {
+        r.field: r
+        for r in await connector.fetch(
+            ["nearest_waterbody_distance_m", "surface_water_permanence_pct"],
+            _ctx(state=None),
+        )
+    }
+    water = results["nearest_waterbody_distance_m"]
+    assert water.value is None
+    assert water.null_reason is NullReason.OUTSIDE_COVERAGE
+    assert results["surface_water_permanence_pct"].value == pytest.approx(8.0)
+
+
 # --------------------------------------------------------------------------- #
 # Cadastral (§18.9, region-gated §24.3)                                       #
 # --------------------------------------------------------------------------- #
@@ -226,6 +264,8 @@ async def test_built_environment_undeveloped_point() -> None:
         for r in await connector.fetch(["building_present", "building_footprint_area_m2"], _ctx())
     }
     assert results["building_present"].value is False
-    # No containing footprint → area is a typed null.
+    # No containing footprint → area is a typed null. Open Buildings covers all
+    # of India, so this is an in-coverage "no building here" miss
+    # (DATA_UNAVAILABLE, keeps its null_meaning), not an out-of-coverage claim.
     assert results["building_footprint_area_m2"].value is None
-    assert results["building_footprint_area_m2"].null_reason is NullReason.OUTSIDE_COVERAGE
+    assert results["building_footprint_area_m2"].null_reason is NullReason.DATA_UNAVAILABLE

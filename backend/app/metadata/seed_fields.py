@@ -659,7 +659,7 @@ _CADASTRAL = (
         source="Telangana Bhu Bharati",
         source_url=_BHU_BHARATI,
         ttl="90d",
-        null_meaning="Cadastral parcels are available only within Telangana.",
+        null_meaning="Parcel data is not yet connected — Bhu Bharati has no bulk export.",
         hint="Pilot-region only; keys into the land-records system.",
     ),
     _gated(
@@ -670,7 +670,7 @@ _CADASTRAL = (
         source="Telangana Bhu Bharati",
         source_url=_BHU_BHARATI,
         ttl="90d",
-        null_meaning="Survey numbers are available only within Telangana.",
+        null_meaning="Survey numbers are not yet connected — Bhu Bharati has no bulk export.",
         hint="Pilot-region only; legal land-parcel reference.",
     ),
     _gated(
@@ -682,7 +682,7 @@ _CADASTRAL = (
         source="Telangana Bhu Bharati",
         source_url=_BHU_BHARATI,
         ttl="90d",
-        null_meaning="Cadastral parcels are available only within Telangana.",
+        null_meaning="Parcel data is not yet connected — Bhu Bharati has no bulk export.",
         hint="Pilot-region only; derived from parcel geometry.",
     ),
     _gated(
@@ -693,7 +693,7 @@ _CADASTRAL = (
         source="Telangana Bhu Bharati",
         source_url=_BHU_BHARATI,
         ttl="90d",
-        null_meaning="Cadastral parcels are available only within Telangana.",
+        null_meaning="Parcel data is not yet connected — Bhu Bharati has no bulk export.",
         hint="Pilot-region only; WGS84 polygon of the parcel boundary.",
     ),
     _gated(
@@ -703,7 +703,7 @@ _CADASTRAL = (
         description="Land-use zoning classification.",
         source="HMDA / DTCP Telangana",
         ttl="180d",
-        null_meaning="Zoning is available only within Telangana.",
+        null_meaning="Zoning is not yet connected — no bulk HMDA/DTCP source is available.",
         hint="Pilot-region only; residential / commercial / industrial / agricultural.",
     ),
     _gated(
@@ -714,7 +714,7 @@ _CADASTRAL = (
         source="Telangana Bhu Bharati",
         source_url=_BHU_BHARATI,
         ttl="90d",
-        null_meaning="Ownership category is available only within Telangana.",
+        null_meaning="Ownership records are not yet connected — Bhu Bharati has no bulk export.",
         hint="Pilot-region only; government / private / institutional / endowment.",
     ),
 )

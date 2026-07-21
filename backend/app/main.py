@@ -24,6 +24,7 @@ from app.core.logging import configure_logging, get_logger
 from app.core.redis import close_redis, get_redis, init_redis
 from app.metadata import get_catalog, get_state_registry, validate_catalog
 from app.middleware.correlation import CorrelationIdMiddleware
+from app.middleware.request_log import RequestLogMiddleware, RequestLogWriter
 from app.middleware.security import SecurityHeadersMiddleware
 from app.observability import MetricsMiddleware, configure_tracing, metrics_router
 
@@ -116,10 +117,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     else:
         app.state.ephemeral_store = InMemoryEphemeralStore()
 
+    # The request-log writer follows the ephemeral_store pattern: it lives on
+    # app.state so tests can swap in a recorder or None (SRS §22.3).
+    app.state.request_log_writer = RequestLogWriter() if settings.request_log_enabled else None
+
     # Middleware. add_middleware installs outermost-last, so the request path is
-    # CORS -> Security -> Correlation -> Metrics -> app. Metrics is innermost so
-    # its access log runs while the correlation id is still bound to the log
-    # context (SRS §27.1); Correlation binds it one layer out (SRS §28.2).
+    # CORS -> Security -> Correlation -> Metrics -> RequestLog -> app.
+    # RequestLog is innermost so it sees the handler's request.state.audit and
+    # the still-bound correlation id; Metrics' access log runs one layer out
+    # (SRS §27.1); Correlation binds the id outside both (SRS §28.2).
+    app.add_middleware(RequestLogMiddleware)
     if settings.metrics_enabled:
         app.add_middleware(MetricsMiddleware)
     app.add_middleware(CorrelationIdMiddleware)

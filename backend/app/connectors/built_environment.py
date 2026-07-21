@@ -156,7 +156,12 @@ class BuiltEnvironmentConnector(BaseConnector):
                     value=value,
                     dataset=_OPEN_BUILDINGS,
                     confidence=_SPEC[field],
-                    null_reason=None if value is not None else NullReason.OUTSIDE_COVERAGE,
+                    # Open Buildings covers all of India, so a null is always an
+                    # in-coverage "no building here" — feature-absent, not an
+                    # extent gap. DATA_UNAVAILABLE keeps the field's catalog
+                    # null_meaning ("No mapped building footprint...") instead of
+                    # a false out-of-coverage claim (SRS §15.17).
+                    null_reason=None if value is not None else NullReason.DATA_UNAVAILABLE,
                 )
             )
         return results

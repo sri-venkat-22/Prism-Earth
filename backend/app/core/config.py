@@ -99,7 +99,9 @@ class Settings(BaseSettings):
     fetch_deadline_seconds: float = 20.0
     # End-to-end wall-clock budget for /ask (planner + fetch + synthesizer).
     # Expiry returns 504 DEADLINE_EXCEEDED instead of holding the request open.
-    ask_deadline_seconds: float = 60.0
+    # 90s covers a cache-cold broad fetch (measured >60s at a never-queried
+    # coordinate) while staying under Render's ~100s edge timeout.
+    ask_deadline_seconds: float = 90.0
     # How long an /ask answer is cached under its exact (question, coordinate)
     # key (SRS §23). /ask has no auth wall and its LLM can carry a small
     # provider quota, so repeat identical questions (e.g. the Ask page's example
@@ -226,6 +228,9 @@ class Settings(BaseSettings):
     # only when an OTLP endpoint is configured, so dev and the test suite run
     # with a no-op tracer and incur no overhead.
     metrics_enabled: bool = True
+    # Persist a RequestLog audit row per /ask & /fetch request (SRS §22.3).
+    # Fail-open: with no reachable database the row is dropped with a warning.
+    request_log_enabled: bool = True
     otel_enabled: bool = False
     otel_exporter_endpoint: str | None = None  # OTLP/HTTP, e.g. http://otel-collector:4318
     otel_service_name: str = "terra-backend"

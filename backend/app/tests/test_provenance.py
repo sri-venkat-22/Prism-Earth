@@ -39,8 +39,37 @@ def test_provenance_records_null_reason_and_meaning() -> None:
     prov = _generator().generate(result, retrieved_at="2026-06-30T00:00:00Z")
     assert prov.succeeded is False
     assert prov.reason is NullReason.OUTSIDE_COVERAGE
-    # null_meaning is sourced from the catalog (aspect is nullable on flat cells).
     assert prov.null_meaning is not None
+
+
+def test_outside_coverage_null_gets_categorical_text_not_field_meaning() -> None:
+    """A genuine coverage gap must report generic coverage text, not the field's
+    in-coverage null_meaning (which would mislead — e.g. an out-of-Telangana
+    substation is not 'no substation within the search radius')."""
+    result = FieldResult(
+        field="nearest_substation_distance",
+        value=None,
+        dataset="OpenStreetMap",
+        confidence=Confidence.HIGH,
+        null_reason=NullReason.OUTSIDE_COVERAGE,
+    )
+    prov = _generator().generate(result, retrieved_at="2026-06-30T00:00:00Z")
+    assert prov.null_meaning == "Outside the data source's coverage for this location."
+
+
+def test_in_coverage_miss_keeps_field_null_meaning() -> None:
+    """An in-coverage feature-absent miss (DATA_UNAVAILABLE) must keep the field's
+    specific catalog null_meaning — the categorical override must not fire and
+    falsely claim the point is outside the source's coverage."""
+    result = FieldResult(
+        field="surface_water_permanence_pct",
+        value=None,
+        dataset="JRC Global Surface Water",
+        confidence=Confidence.MEDIUM,
+        null_reason=NullReason.DATA_UNAVAILABLE,
+    )
+    prov = _generator().generate(result, retrieved_at="2026-06-30T00:00:00Z")
+    assert prov.null_meaning == "No surface water has been observed at this location."
 
 
 def test_provenance_passes_derivation_through() -> None:
