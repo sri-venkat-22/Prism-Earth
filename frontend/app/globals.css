@@ -361,13 +361,88 @@
     }
   }
 
+  /* 05 Radar scan background: a conic beam sweeps the contour rings, blips
+     light up as it passes (blip glow is driven in JS — see RadarScan). Accent
+     colour comes from --rad, set per instance. */
+  .radar-sweep {
+    border-radius: 50%;
+    background: conic-gradient(
+      from 0deg,
+      transparent 0%,
+      hsl(var(--rad, var(--brand)) / 0.18) 15%,
+      transparent 32%
+    );
+    animation: orbit-spin var(--radar-dur, 7s) linear infinite;
+  }
+
+  /* 06 Live data pulse field: staggered dots ripple like the hero's LIVE card.
+     Colour via --pf; each dot carries its own animation-delay inline. */
+  .pulse-field-dot {
+    position: absolute;
+    border-radius: 50%;
+    animation: pulse-field 2.4s ease-out infinite;
+  }
+  @keyframes pulse-field {
+    0% {
+      box-shadow: 0 0 0 0 hsl(var(--pf, var(--brand)) / 0.5);
+    }
+    70% {
+      box-shadow: 0 0 0 8px hsl(var(--pf, var(--brand)) / 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 hsl(var(--pf, var(--brand)) / 0);
+    }
+  }
+  .pf-label {
+    animation: label-breathe 4s ease-in-out infinite;
+  }
+  @keyframes label-breathe {
+    0%,
+    100% {
+      opacity: 0.22;
+    }
+    50% {
+      opacity: 0.55;
+    }
+  }
+
+  /* 07 Satellite orbit backdrop: a zero-size anchor rotates, carrying a node
+     offset from centre. Duration/direction set inline for each ring. */
+  .orbit-anchor {
+    position: absolute;
+    width: 0;
+    height: 0;
+    animation: orbit-spin var(--orbit-dur, 22s) linear infinite;
+  }
+
+  /* 08 Contour ridge drift: a max-content track of tiled ridges scrolls; the
+     tile set is duplicated so translateX(-50%) loops seamlessly. */
+  .drift-track {
+    display: flex;
+    width: max-content;
+    animation: drift-x var(--drift-dur, 28s) linear infinite;
+  }
+  @keyframes drift-x {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .logo-draw .tm-ridge,
     .logo-draw .tm-arc,
     .logo-draw .tm-node,
     .logo-lockup:hover .tm-arc,
     .logo-lockup:hover .tm-node,
-    .btn-scan:hover::after {
+    .btn-scan:hover::after,
+    .radar-sweep,
+    .pulse-field-dot,
+    .pf-label,
+    .orbit-anchor,
+    .drift-track {
       animation: none;
     }
     .orbit-sweep {

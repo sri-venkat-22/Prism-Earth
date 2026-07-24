@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 
 import { TerraMark } from "@/components/layout/logo";
+import { RadarScan, RidgeDrift } from "@/components/motion/backdrops";
 import { Reveal } from "@/components/reveal";
 import { SectionHeading } from "@/components/section-heading";
 import { TerminalLine, TerminalWindow } from "@/components/terminal-window";
@@ -54,15 +55,50 @@ const FAQ = [
 
 const ROTATING_WORDS = ["terrain", "climate", "land cover", "natural hazard", "AI agents"];
 
+/**
+ * Typewriter headline: types the current layer one letter at a time, holds,
+ * then backspaces it letter by letter before typing the next. Falls back to a
+ * plain word-swap under prefers-reduced-motion.
+ */
 function RotatingWord() {
-  const [index, setIndex] = useState(0);
+  const [wordIndex, setWordIndex] = useState(0);
+  const [text, setText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [reduced, setReduced] = useState(false);
+
   useEffect(() => {
-    const t = setInterval(() => setIndex((i) => (i + 1) % ROTATING_WORDS.length), 1900);
-    return () => clearInterval(t);
+    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, []);
+
+  useEffect(() => {
+    const full = ROTATING_WORDS[wordIndex];
+
+    if (reduced) {
+      setText(full);
+      const t = setTimeout(() => setWordIndex((i) => (i + 1) % ROTATING_WORDS.length), 2000);
+      return () => clearTimeout(t);
+    }
+    if (!deleting && text === full) {
+      const t = setTimeout(() => setDeleting(true), 1500); // hold on the full word
+      return () => clearTimeout(t);
+    }
+    if (deleting && text === "") {
+      const t = setTimeout(() => {
+        setDeleting(false);
+        setWordIndex((i) => (i + 1) % ROTATING_WORDS.length);
+      }, 300);
+      return () => clearTimeout(t);
+    }
+    const t = setTimeout(
+      () => setText((prev) => (deleting ? full.slice(0, prev.length - 1) : full.slice(0, prev.length + 1))),
+      deleting ? 45 : 95,
+    );
+    return () => clearTimeout(t);
+  }, [text, deleting, wordIndex, reduced]);
+
   return (
     <>
-      <span className="text-brand">{ROTATING_WORDS[index]}</span>
+      <span className="text-brand">{text}</span>
       <span aria-hidden className="blink-cursor text-brand">
         |
       </span>
@@ -112,17 +148,10 @@ export default function HomePage() {
         </div>
 
         <div className="relative mx-auto mt-8 h-[300px] w-full max-w-[560px] overflow-hidden sm:h-[380px]">
-          {[150, 250, 350, 440].map((size, i) => (
-            <div
-              key={size}
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border"
-              style={{
-                width: size,
-                height: size,
-                borderColor: `hsl(var(--foreground) / ${[0.1, 0.08, 0.06, 0.045][i]})`,
-              }}
-            />
-          ))}
+          {/* Live radar sweep (motion spec 05) — contour rings, sweeping beam,
+              blips that flash where data lands, behind the draw-on mark. Fills
+              the box and fades at top/bottom so it blends into the surface. */}
+          <RadarScan accent="brand" fade />
           <TerraMark
             twoTone
             className="logo-draw absolute left-1/2 top-1/2 h-[86px] w-[86px] -translate-x-1/2 -translate-y-[58%] text-foreground"
@@ -287,6 +316,10 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* Contour ridge drift (motion spec 08) — a quiet parallax section divider
+          built from the mark's own ridge, tiled. */}
+      <RidgeDrift className="h-24" />
 
       {/* CTA */}
       <section className="rounded-xl border border-border bg-card px-6 py-14 text-center sm:py-20">

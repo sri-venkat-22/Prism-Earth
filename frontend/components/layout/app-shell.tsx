@@ -29,6 +29,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Link href="/ask" className="hover:text-foreground">
               Ask
             </Link>
+            <Link href="/motion" className="hover:text-foreground">
+              Motion
+            </Link>
             <a href={DOCS_URL} target="_blank" rel="noreferrer" className="hover:text-foreground">
               Documentation
             </a>
