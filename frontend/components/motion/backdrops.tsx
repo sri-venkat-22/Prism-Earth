@@ -347,10 +347,10 @@ export function RidgeDrift({
    sits behind all page content and repeats, so the whole surface reads as the
    mark's contour texture. Same GPU-cheap transform drift; reduced-motion safe. */
 const BG_ROWS = [
-  { w: 26, h: 15, sw: 10, gap: 26, opacity: 0.05, dur: 40, reverse: false },
-  { w: 29, h: 16, sw: 9, gap: 28, opacity: 0.07, dur: 32, reverse: true },
-  { w: 33, h: 19, sw: 8, gap: 32, opacity: 0.1, dur: 24, reverse: false },
-  { w: 29, h: 16, sw: 9, gap: 28, opacity: 0.07, dur: 30, reverse: true },
+  { w: 26, h: 15, sw: 10, gap: 26, opacity: 0.1, dur: 40, reverse: false },
+  { w: 29, h: 16, sw: 9, gap: 28, opacity: 0.15, dur: 32, reverse: true },
+  { w: 33, h: 19, sw: 8, gap: 32, opacity: 0.22, dur: 24, reverse: false },
+  { w: 29, h: 16, sw: 9, gap: 28, opacity: 0.15, dur: 30, reverse: true },
 ];
 const BG_TILES = Array.from({ length: 48 });
 
