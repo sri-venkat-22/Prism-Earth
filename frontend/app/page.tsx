@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 
 import { TerraMark } from "@/components/layout/logo";
-import { RadarScan, RidgeDrift } from "@/components/motion/backdrops";
+import { RadarScan, RidgeBackdrop } from "@/components/motion/backdrops";
 import { Reveal } from "@/components/reveal";
 import { SectionHeading } from "@/components/section-heading";
 import { TerminalLine, TerminalWindow } from "@/components/terminal-window";
@@ -141,6 +141,10 @@ export default function HomePage() {
 
   return (
     <div className="space-y-24 sm:space-y-32">
+      {/* Contour ridge drift (motion spec 08) as the page's ambient background —
+          a faint, repeating, drifting field of the mark's ridge behind all content. */}
+      <RidgeBackdrop />
+
       {/* Hero — Ridge/Orbit mark inside contour rings, live readouts pinned */}
       <section className="mx-auto max-w-[900px] animate-fade-up text-center">
         <div className="inline-flex items-center rounded-full border border-border bg-card px-4 py-2 font-mono text-xs text-muted-foreground">
@@ -316,10 +320,6 @@ export default function HomePage() {
           ))}
         </div>
       </section>
-
-      {/* Contour ridge drift (motion spec 08) — a quiet parallax section divider
-          built from the mark's own ridge, tiled. */}
-      <RidgeDrift className="h-24" />
 
       {/* CTA */}
       <section className="rounded-xl border border-border bg-card px-6 py-14 text-center sm:py-20">

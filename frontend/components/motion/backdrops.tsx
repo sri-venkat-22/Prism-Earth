@@ -342,3 +342,57 @@ export function RidgeDrift({
     </div>
   );
 }
+
+/* Full-page version of 08 — a fixed, faint field of drifting ridge rows that
+   sits behind all page content and repeats, so the whole surface reads as the
+   mark's contour texture. Same GPU-cheap transform drift; reduced-motion safe. */
+const BG_ROWS = [
+  { w: 26, h: 15, sw: 10, gap: 26, opacity: 0.05, dur: 40, reverse: false },
+  { w: 29, h: 16, sw: 9, gap: 28, opacity: 0.07, dur: 32, reverse: true },
+  { w: 33, h: 19, sw: 8, gap: 32, opacity: 0.1, dur: 24, reverse: false },
+  { w: 29, h: 16, sw: 9, gap: 28, opacity: 0.07, dur: 30, reverse: true },
+];
+const BG_TILES = Array.from({ length: 48 });
+
+export function RidgeBackdrop({ rows = 14, className }: { rows?: number; className?: string }) {
+  return (
+    <div
+      aria-hidden
+      className={cn("pointer-events-none fixed inset-0 -z-10 overflow-hidden text-foreground", className)}
+    >
+      <div className="flex h-full flex-col justify-between py-4">
+        {Array.from({ length: rows }, (_, i) => {
+          const r = BG_ROWS[i % BG_ROWS.length];
+          return (
+            <div key={i} className="relative overflow-hidden" style={{ height: r.h + 4 }}>
+              <div
+                className="drift-track items-center"
+                style={{ opacity: r.opacity, animationDirection: r.reverse ? "reverse" : "normal", ["--drift-dur" as string]: `${r.dur}s` } as CSSProperties}
+              >
+                {BG_TILES.map((_, t) => (
+                  <svg
+                    key={t}
+                    viewBox="0 0 64 64"
+                    width={r.w}
+                    height={r.h}
+                    fill="none"
+                    className="shrink-0"
+                    style={{ marginRight: r.gap }}
+                  >
+                    <polyline
+                      points="8,48 32,20 56,48"
+                      stroke="currentColor"
+                      strokeWidth={r.sw}
+                      strokeLinecap="square"
+                      strokeLinejoin="miter"
+                    />
+                  </svg>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
