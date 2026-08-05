@@ -50,7 +50,7 @@ def test_ask_returns_cited_answer_and_trace() -> None:
     assert "[CIT-" not in body["answer"]
     assert body["citations"]
 
-    # CLAUDE.md response shape: metadata is opt-in, as separate top-level fields.
+    # Response metadata is opt-in and returned as separate top-level fields.
     assert body["confidence"] in {"high", "medium", "low"}
     assert body["fields_used"]
     assert {g["field"] for g in body["data_gaps"]} == set(

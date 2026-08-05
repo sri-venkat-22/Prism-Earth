@@ -53,6 +53,10 @@ Thumbs.db
 .idea/
 .vscode/
 .claude/
+.codex/
+.agents/
+AGENTS.md
+CLAUDE.md
 *.swp
 
 # --- Data (large datasets are not committed; see datasets/README) ---
